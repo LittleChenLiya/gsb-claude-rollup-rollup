@@ -133,7 +133,7 @@ export default async function transform(
 					debug: getLogHandler(pluginContext.debug),
 					emitFile(emittedFile: EmittedFile) {
 						emittedFiles.push(emittedFile);
-						return pluginDriver.emitFile(emittedFile);
+						return pluginDriver.emitFile(emittedFile, { module: id, plugin: plugin.name });
 					},
 					error(
 						error_: RollupError | string,

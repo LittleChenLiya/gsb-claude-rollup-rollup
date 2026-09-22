@@ -952,8 +952,24 @@ export interface PreRenderedAsset {
 }
 
 export interface OutputAsset extends PreRenderedAsset {
+	/**
+	 * Lists the plugins and modules that emitted this asset via "this.emitFile".
+	 * Assets emitted by Rollup itself, like sourcemaps, have an empty list.
+	 */
+	emittedBy: readonly EmittedFileOrigin[];
 	fileName: string;
 	needsCodeReference: boolean;
+}
+
+export interface EmittedFileOrigin {
+	/**
+	 * The id of the module from whose context the file was emitted, if known.
+	 */
+	module: string | null;
+	/**
+	 * The name of the plugin that emitted the file, if known.
+	 */
+	plugin: string | null;
 }
 
 export interface RenderedModule {

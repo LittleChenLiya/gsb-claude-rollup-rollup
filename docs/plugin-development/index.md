@@ -956,6 +956,7 @@ Cf. [`output.banner/output.footer`](../configuration-options/index.md#output-ban
 
 ```typescript
 interface OutputAsset {
+	emittedBy: { module: string | null; plugin: string | null }[];
 	fileName: string;
 	names: string[];
 	needsCodeReference: boolean;
@@ -996,6 +997,8 @@ interface OutputChunk {
 ```
 
 Called at the end of `bundle.generate()` or immediately before the files are written in `bundle.write()`. To modify the files after they have been written, use the [`writeBundle`](#writebundle) hook. `bundle` provides the full list of files being written or generated along with their details.
+
+For assets, `emittedBy` lists which plugin and, if known, which module the asset was emitted from via [`this.emitFile`](#this-emitfile). Assets emitted from a `transform` hook carry the id of the transformed module in `module`; for assets emitted from hooks without a module context, `module` is `null`. Assets emitted by Rollup itself, like sourcemaps, have an empty `emittedBy` list. If several plugins or modules emitted an asset with the same source or file name, `emittedBy` contains one entry per origin.
 
 You can prevent files from being emitted by deleting them from the bundle object in this hook. To emit additional files, use the [`this.emitFile`](#this-emitfile) plugin context function.
 

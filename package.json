@@ -49,6 +49,7 @@
     "build:js": "rollup --config rollup.config.ts --configPlugin typescript --forceExit",
     "build:js:node": "rollup --config rollup.config.ts --configPlugin typescript --configIsBuildNode --forceExit",
     "build:prepare": "concurrently -c green,blue \"npm run build:napi -- --release\" \"npm:build:js:node\" && npm run build:copy-native",
+    "demo:module-manifest": "node plugins/module-ownership-manifest/scripts/print-manifest-diff.js",
     "update:js": "npm run build:js && npm run build:copy-native",
     "build:copy-native": "shx mkdir -p dist && shx cp rollup.*.node dist/",
     "dev": "concurrently -kc green,blue 'nodemon --watch rust -e rs --exec \"npm run build:wasm\"' 'vitepress dev docs'",

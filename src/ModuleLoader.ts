@@ -340,7 +340,7 @@ export class ModuleLoader {
 			} else {
 				if (cachedModule.transformFiles) {
 					for (const emittedFile of cachedModule.transformFiles)
-						this.pluginDriver.emitFile(emittedFile);
+						this.pluginDriver.emitFile(emittedFile, { module: module.id, plugin: null });
 				}
 				await module.setSource(cachedModule);
 				return;

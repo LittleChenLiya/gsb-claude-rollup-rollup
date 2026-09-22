@@ -5,7 +5,8 @@ import type {
 	AddonHookFunction,
 	AddonHooks,
 	AsyncPluginHooks,
-	EmitFile,
+	EmittedFile,
+	EmittedFileOrigin,
 	FirstPluginHooks,
 	FunctionPluginHooks,
 	HookFilter,
@@ -72,7 +73,10 @@ export type ReplaceContext = (context: PluginContext, plugin: Plugin) => PluginC
 export type HookAction = [plugin: string, hook: string, args: unknown[]];
 
 export class PluginDriver {
-	public readonly emitFile: EmitFile;
+	public readonly emitFile: (
+		emittedFile: EmittedFile,
+		emittedBy?: EmittedFileOrigin | null
+	) => string;
 	public finaliseAssets: () => void;
 	public getFileName: (fileReferenceId: string) => string;
 	public readonly setChunkInformation: (facadeChunkByModule: ReadonlyMap<Module, Chunk>) => void;

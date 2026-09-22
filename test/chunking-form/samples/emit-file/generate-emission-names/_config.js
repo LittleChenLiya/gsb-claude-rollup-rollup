@@ -25,6 +25,7 @@ module.exports = defineTest({
 				const fileNameWithoutName = this.getFileName(referenceIdWithoutName);
 				assert.strictEqual(fileNameWithoutName, 'generated-asset');
 				assert.deepStrictEqual(bundle[fileNameWithoutName], {
+					emittedBy: [{ module: null, plugin: 'at position 1' }],
 					fileName: 'generated-asset',
 					name: undefined,
 					names: [],
@@ -41,6 +42,10 @@ module.exports = defineTest({
 					originalFileName: 'original-new-name.txt'
 				});
 				assert.deepStrictEqual(bundle[fileNameWithoutName], {
+					emittedBy: [
+						{ module: null, plugin: 'at position 1' },
+						{ module: null, plugin: 'at position 1' }
+					],
 					fileName: 'generated-asset',
 					name: undefined,
 					names: ['new-name.txt'],
@@ -54,6 +59,7 @@ module.exports = defineTest({
 				const fileNameWithName = this.getFileName(referenceIdWithName);
 				assert.strictEqual(fileNameWithName, 'generated-with-names.txt');
 				assert.deepStrictEqual(bundle[fileNameWithName], {
+					emittedBy: [{ module: null, plugin: 'at position 1' }],
 					fileName: 'generated-with-names.txt',
 					name: 'with-names.txt',
 					names: ['with-names.txt'],
@@ -70,6 +76,10 @@ module.exports = defineTest({
 					source: 'renderChunk-with-names'
 				});
 				assert.deepStrictEqual(bundle[fileNameWithName], {
+					emittedBy: [
+						{ module: null, plugin: 'at position 1' },
+						{ module: null, plugin: 'at position 1' }
+					],
 					fileName: 'generated-with-names.txt',
 					name: 'with-names.txt',
 					names: ['with-names.txt', 'second-name.txt'],

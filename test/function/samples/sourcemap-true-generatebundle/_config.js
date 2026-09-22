@@ -21,6 +21,7 @@ module.exports = main;
 `
 					);
 					assert.deepStrictEqual(bundle['main.js.map'], {
+						emittedBy: [],
 						fileName: 'main.js.map',
 						name: undefined,
 						names: [],

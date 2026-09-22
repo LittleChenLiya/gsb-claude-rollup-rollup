@@ -4,6 +4,7 @@ import type Module from '../Module';
 import type {
 	EmittedAsset,
 	EmittedChunk,
+	EmittedFileOrigin,
 	EmittedPrebuiltChunk,
 	LogHandler,
 	NormalizedInputOptions,
@@ -111,6 +112,7 @@ type ConsumedPrebuiltChunk = EmittedPrebuiltChunk & {
 };
 
 type ConsumedAsset = EmittedAsset & {
+	emittedBy: EmittedFileOrigin | null;
 	needsCodeReference: boolean;
 	originalFileName: string | null;
 	referenceId: string;
@@ -211,7 +213,7 @@ export class FileEmitter {
 		baseFileEmitter?.addOutputFileEmitter(this);
 	}
 
-	public emitFile = (emittedFile: unknown): string => {
+	public emitFile = (emittedFile: unknown, emittedBy: EmittedFileOrigin | null = null): string => {
 		if (!hasValidType(emittedFile)) {
 			return error(
 				logFailedValidation(
@@ -236,7 +238,7 @@ export class FileEmitter {
 		if (emittedFile.type === 'chunk') {
 			return this.emitChunk(emittedFile);
 		}
-		return this.emitAsset(emittedFile);
+		return this.emitAsset(emittedFile, emittedBy);
 	};
 
 	public finaliseAssets = (): void => {
@@ -365,7 +367,7 @@ export class FileEmitter {
 		};
 	}
 
-	private emitAsset(emittedAsset: EmittedFile): string {
+	private emitAsset(emittedAsset: EmittedFile, emittedBy: EmittedFileOrigin | null): string {
 		const source =
 			emittedAsset.source === undefined
 				? undefined
@@ -375,6 +377,7 @@ export class FileEmitter {
 			this.graph.watchFiles[originalFileName] = true;
 		}
 		const consumedAsset: ConsumedAsset = {
+			emittedBy,
 			fileName: emittedAsset.fileName,
 			name: emittedAsset.name,
 			needsCodeReference: !!emittedAsset.needsCodeReference,
@@ -513,6 +516,9 @@ export class FileEmitter {
 		const existingAsset = bundle[fileName];
 		if (existingAsset?.type === 'asset') {
 			existingAsset.needsCodeReference &&= needsCodeReference;
+			if (consumedFile.emittedBy) {
+				(existingAsset.emittedBy as EmittedFileOrigin[]).push(consumedFile.emittedBy);
+			}
 			if (name) {
 				existingAsset.names.push(name);
 			}
@@ -522,6 +528,7 @@ export class FileEmitter {
 		} else {
 			const { options } = this;
 			bundle[fileName] = {
+				emittedBy: consumedFile.emittedBy ? [consumedFile.emittedBy] : [],
 				fileName,
 				get name() {
 					// Additionally, this should be non-enumerable in the next major
@@ -593,6 +600,9 @@ export class FileEmitter {
 
 		const { options } = this;
 		bundle[fileName] = {
+			emittedBy: consumedFiles.flatMap(consumedFile =>
+				consumedFile.emittedBy ? [consumedFile.emittedBy] : []
+			),
 			fileName,
 			get name() {
 				// Additionally, this should be non-enumerable in the next major
