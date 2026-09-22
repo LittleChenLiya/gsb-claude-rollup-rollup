@@ -956,6 +956,7 @@ Cf. [`output.banner/output.footer`](../configuration-options/index.md#output-ban
 
 ```typescript
 interface OutputAsset {
+	emittedByModuleIds: string[];
 	fileName: string;
 	names: string[];
 	needsCodeReference: boolean;
@@ -998,6 +999,8 @@ interface OutputChunk {
 Called at the end of `bundle.generate()` or immediately before the files are written in `bundle.write()`. To modify the files after they have been written, use the [`writeBundle`](#writebundle) hook. `bundle` provides the full list of files being written or generated along with their details.
 
 You can prevent files from being emitted by deleting them from the bundle object in this hook. To emit additional files, use the [`this.emitFile`](#this-emitfile) plugin context function.
+
+For assets, `emittedByModuleIds` lists the ids of the modules from which the asset was emitted via [`this.emitFile`](#this-emitfile), e.g. from a `transform` hook. Assets emitted outside of a module context, for instance from `buildStart` or by Rollup itself, have an empty list. This is the provenance information also used by the [`moduleManifest`](#module-manifest-plugin) plugin.
 
 ::: danger
 
@@ -1233,6 +1236,91 @@ import('./lib.js');
 );
 ```
 <!-- prettier-ignore-end -->
+
+## Module Manifest Plugin
+
+Rollup ships an optional `moduleManifest` plugin that emits a JSON manifest describing the module attribution of the build output: which chunks are statically reachable from each entry, which chunks are connected by dynamic imports, which modules ended up in which chunk with their original and rendered lengths, and which modules emitted which assets via the plugin API.
+
+```js
+// rollup.config.js
+import { moduleManifest } from 'rollup';
+
+export default {
+	input: 'src/main.js',
+	output: {
+		dir: 'dist',
+		format: 'es'
+	},
+	plugins: [
+		moduleManifest({
+			// fileName of the emitted manifest asset,
+			// defaults to 'module-manifest.json'
+			fileName: 'module-manifest.json',
+			// project root that module ids are made relative to,
+			// defaults to the current working directory
+			root: process.cwd()
+		})
+	]
+};
+```
+
+The manifest is generated in the [`generateBundle`](#generatebundle) hook, so all file names it references are the final output file names, including content hashes. The manifest asset itself is emitted with a fixed file name that must not contain hash placeholders; it is never part of its own summary, and emitting it cannot create chunk hash cycles. When several outputs are generated, each output receives its own independent manifest.
+
+Module ids are reported relative to the configured `root`. Virtual module ids are kept as-is so they remain identifiable. Assets that cannot be attributed to a module, for example assets emitted from `buildStart` or by Rollup itself, are listed in `unknown.assets`; assets are keyed by their final file name and are never merged just because they share a name.
+
+The manifest has the following structure:
+
+```typescript
+interface ModuleManifest {
+	version: 1;
+	// one entry per entry chunk
+	entries: Record<
+		string,
+		{
+			facadeModuleId: string | null;
+			// chunks reachable from the entry via static imports,
+			// including the entry chunk itself
+			staticChunks: string[];
+			// chunks loaded via dynamic imports from the statically
+			// reachable chunks
+			dynamicImports: string[];
+		}
+	>;
+	// one entry per chunk, keyed by final file name
+	chunks: Record<
+		string,
+		{
+			imports: string[];
+			dynamicImports: string[];
+			isEntry: boolean;
+			isDynamicEntry: boolean;
+			modules: Record<
+				string,
+				{ originalLength: number; renderedLength: number }
+			>;
+			referencedAssets: string[];
+		}
+	>;
+	// one entry per asset, keyed by final file name
+	assets: Record<
+		string,
+		{ emittedBy: string[]; names: string[]; size: number }
+	>;
+	// dynamic import edges between chunks
+	dynamicImportEdges: { from: string; to: string }[];
+	// files that could not be attributed to any module
+	unknown: { assets: string[] };
+	// summed over all modules, counting each module only once even if
+	// its chunk is shared between several entries
+	totals: {
+		modules: number;
+		originalLength: number;
+		renderedLength: number;
+	};
+}
+```
+
+Note that `renderedLength` is the length of the module code as rendered into the chunk after tree-shaking. It is not the minified or compressed size, so it must not be used for exact compressed-size attribution. *** End Patch
 
 Note that when this hook rewrites dynamic imports in non-ES formats, no interop code to make sure that e.g. the default export is available as `.default` is generated. It is the responsibility of the plugin to make sure the rewritten dynamic import returns a Promise that resolves to a proper namespace object.
 

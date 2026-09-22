@@ -952,6 +952,12 @@ export interface PreRenderedAsset {
 }
 
 export interface OutputAsset extends PreRenderedAsset {
+	/**
+	 * Ids of the modules from which this asset was emitted via `this.emitFile`,
+	 * e.g. from a `transform` hook. Assets emitted outside of a module context,
+	 * for instance from `buildStart` or by Rollup itself, have an empty list.
+	 */
+	emittedByModuleIds: string[];
 	fileName: string;
 	needsCodeReference: boolean;
 }
@@ -1024,6 +1030,87 @@ export interface MergedRollupOptions extends InputOptionsWithPlugins {
 }
 
 export function rollup(options: RollupOptions): Promise<RollupBuild>;
+
+export interface ModuleManifestOptions {
+	/**
+	 * File name of the emitted manifest asset, relative to the output directory.
+	 * It is emitted as-is after all content hashes are final, so it must not
+	 * contain hash placeholders. Defaults to "module-manifest.json".
+	 */
+	fileName?: string;
+	/**
+	 * Project root that absolute module ids are made relative to in the
+	 * manifest. Defaults to the current working directory. Virtual module ids
+	 * are always kept as-is.
+	 */
+	root?: string;
+}
+
+export interface ModuleManifestModule {
+	/** Length of the original module source before any transformations. */
+	originalLength: number;
+	/**
+	 * Length of the module code as rendered into the chunk after tree-shaking.
+	 * This is not the minified or compressed size and must not be used for
+	 * exact compressed-size attribution.
+	 */
+	renderedLength: number;
+}
+
+export interface ModuleManifestChunk {
+	dynamicImports: string[];
+	imports: string[];
+	isDynamicEntry: boolean;
+	isEntry: boolean;
+	modules: Record<string, ModuleManifestModule>;
+	referencedAssets: string[];
+}
+
+export interface ModuleManifestEntry {
+	/** Chunks loaded via dynamic imports from the statically reachable chunks. */
+	dynamicImports: string[];
+	facadeModuleId: string | null;
+	/** Chunks reachable from this entry via static imports, including itself. */
+	staticChunks: string[];
+}
+
+export interface ModuleManifestAsset {
+	/** Ids of the modules that emitted this asset via the plugin API. */
+	emittedBy: string[];
+	names: string[];
+	/** Size of the asset source in characters or bytes. */
+	size: number;
+}
+
+export interface ModuleManifestDynamicImportEdge {
+	from: string;
+	to: string;
+}
+
+export interface ModuleManifest {
+	assets: Record<string, ModuleManifestAsset>;
+	chunks: Record<string, ModuleManifestChunk>;
+	dynamicImportEdges: ModuleManifestDynamicImportEdge[];
+	entries: Record<string, ModuleManifestEntry>;
+	totals: {
+		modules: number;
+		originalLength: number;
+		renderedLength: number;
+	};
+	/** Files that could not be attributed to any module. */
+	unknown: {
+		assets: string[];
+	};
+	version: 1;
+}
+
+/**
+ * Optional plugin that emits a JSON manifest describing which modules ended
+ * up in which chunks, which chunks are reachable from each entry, and which
+ * modules emitted which assets. The manifest is generated in `generateBundle`,
+ * so all file names it references are the final output file names.
+ */
+export function moduleManifest(options?: ModuleManifestOptions): Plugin;
 
 export interface ChokidarOptions {
 	alwaysStat?: boolean | undefined;

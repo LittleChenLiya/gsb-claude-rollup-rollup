@@ -57,6 +57,7 @@
     "build:bootstrap:cjs": "shx mv dist dist-build && node dist-build/bin/rollup --config rollup.config.ts --configPlugin typescript --configTest --forceExit && shx rm -rf dist-build",
     "build:docs": "vitepress build docs",
     "build:ast-converters": "node scripts/generate-ast-converters.js",
+    "demo:module-manifest": "node scripts/module-manifest-diff-demo.mjs",
     "preview:docs": "vitepress preview docs",
     "ci:artifacts": "napi artifacts",
     "ci:lint": "concurrently -c red,yellow,green,blue 'npm:lint:js:nofix' 'npm:lint:native-js' 'npm:lint:markdown:nofix' 'npm:lint:rust:nofix'",
