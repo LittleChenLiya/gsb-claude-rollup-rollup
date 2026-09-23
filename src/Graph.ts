@@ -14,7 +14,8 @@ import type {
 	RollupCache,
 	RollupWatcher,
 	SerializablePluginCache,
-	WatchChangeHook
+	WatchChangeHook,
+	WatchDirectoryRegistration
 } from './rollup/types';
 import { BuildPhase } from './utils/buildPhase';
 import { analyseModuleExecution } from './utils/executionOrder';
@@ -67,6 +68,7 @@ export default class Graph {
 	readonly pluginDriver: PluginDriver;
 	readonly pureFunctions: PureFunctions;
 	readonly scope = new GlobalScope();
+	readonly watchDirectories: WatchDirectoryRegistration[] = [];
 	readonly watchFiles: Record<string, true> = Object.create(null);
 	watchMode = false;
 

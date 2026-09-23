@@ -3027,6 +3027,8 @@ export default [
 
 These options only take effect when running Rollup with the `--watch` flag, or using `rollup.watch`.
 
+Besides the files that are part of the module graph, plugins can mark additional files and entire directories to be watched via [`this.addWatchFile`](../plugin-development/index.md#this-addwatchfile) and [`this.addWatchDirectory`](../plugin-development/index.md#this-addwatchdirectory).
+
 ### watch.allowInputInsideOutputPath
 
 |  |  |

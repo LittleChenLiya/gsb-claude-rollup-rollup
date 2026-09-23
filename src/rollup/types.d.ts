@@ -30,6 +30,7 @@ type PartialNull<T> = {
 export interface RollupError extends RollupLog {
 	name?: string | undefined;
 	stack?: string | undefined;
+	watchDirectories?: WatchDirectoryRegistration[] | undefined;
 	watchFiles?: string[] | undefined;
 }
 
@@ -240,6 +241,7 @@ export type ParseAstAsync = (
 ) => Promise<ProgramNode>;
 
 export interface PluginContext extends MinimalPluginContext {
+	addWatchDirectory: (directory: string, options?: WatchDirectoryOptions) => void;
 	addWatchFile: (id: string) => void;
 	cache: PluginCache;
 	debug: LoggingFunction;
@@ -287,6 +289,15 @@ export type StringFilter<Value = StringOrRegExp> =
 export interface HookFilter {
 	id?: StringFilter | undefined;
 	code?: StringFilter | undefined;
+}
+
+export interface WatchDirectoryOptions {
+	exclude?: MaybeArray<StringOrRegExp> | undefined;
+	include?: MaybeArray<StringOrRegExp> | undefined;
+}
+
+export interface WatchDirectoryRegistration extends WatchDirectoryOptions {
+	directory: string;
 }
 
 export interface ResolvedId extends ModuleOptions {
@@ -1010,6 +1021,7 @@ export interface RollupBuild {
 	[Symbol.asyncDispose](): Promise<void>;
 	generate: (outputOptions: OutputOptions) => Promise<RollupOutput>;
 	getTimings?: (() => SerializedTimings) | undefined;
+	watchDirectories: WatchDirectoryRegistration[];
 	watchFiles: string[];
 	write: (options: OutputOptions) => Promise<RollupOutput>;
 }

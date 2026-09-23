@@ -81,6 +81,9 @@ export async function rollupInternal(
 			if (watchFiles.length > 0) {
 				error_.watchFiles = watchFiles;
 			}
+			if (graph.watchDirectories.length > 0) {
+				error_.watchDirectories = [...graph.watchDirectories];
+			}
 			try {
 				await graph.pluginDriver.hookParallel('buildEnd', [error_]);
 			} catch (buildEndError: any) {
@@ -124,6 +127,9 @@ export async function rollupInternal(
 			if (result.closed) return error(logAlreadyClosed());
 
 			return handleGenerateWrite(false, inputOptions, unsetInputOptions, rawOutputOptions, graph);
+		},
+		get watchDirectories() {
+			return [...graph.watchDirectories];
 		},
 		get watchFiles() {
 			return Object.keys(graph.watchFiles);

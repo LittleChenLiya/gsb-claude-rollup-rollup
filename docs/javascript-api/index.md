@@ -64,6 +64,10 @@ async function build() {
 		// an array of file names this bundle depends on
 		console.log(bundle.watchFiles);
 
+		// an array of directories this bundle depends on, as registered
+		// by plugins via this.addWatchDirectory
+		console.log(bundle.watchDirectories);
+
 		await generateOutputs(bundle);
 	} catch (error) {
 		buildFailed = true;

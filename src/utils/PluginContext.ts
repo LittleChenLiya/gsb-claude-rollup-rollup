@@ -14,6 +14,7 @@ import { getLogHandler } from './logHandler';
 import { error, logPluginError } from './logs';
 import { normalizeLog } from './options/options';
 import { parseAst } from './parseAst';
+import { resolve } from './path';
 import { createPluginCache, getCacheForUncacheablePlugin, NO_CACHE } from './PluginCache';
 import { ANONYMOUS_OUTPUT_PLUGIN_PREFIX, ANONYMOUS_PLUGIN_PREFIX } from './pluginNames';
 
@@ -54,6 +55,9 @@ export function getPluginContext(
 	}
 
 	return {
+		addWatchDirectory(directory, { exclude, include } = EMPTY_OBJECT) {
+			graph.watchDirectories.push({ directory: resolve(directory), exclude, include });
+		},
 		addWatchFile(id) {
 			graph.watchFiles[id] = true;
 		},

@@ -1359,6 +1359,29 @@ Called only at the end of `bundle.write()` once all files have been written. Sim
 
 A number of utility functions and informational bits can be accessed from within most [hooks](#build-hooks) via `this`:
 
+### this.addWatchDirectory
+
+|       |                                                                |
+| ----: | :------------------------------------------------------------- |
+| Type: | `(directory: string, options?: WatchDirectoryOptions) => void` |
+
+```typescript
+interface WatchDirectoryOptions {
+	include?: string | RegExp | (string | RegExp)[];
+	exclude?: string | RegExp | (string | RegExp)[];
+}
+```
+
+Adds a directory to be monitored in watch mode so that changes to matching files inside the directory will trigger rebuilds. This is useful for plugins that generate virtual modules from the contents of a directory, as it also detects files that are added to or removed from the directory later, whereas [`this.addWatchFile`](#this-addwatchfile) only tracks files that already exist. `directory` can be an absolute path or a path relative to the current working directory. This context function can be used in all plugin hooks except `closeBundle`.
+
+The directory is watched recursively without following symbolic links. `include` and `exclude` are optional picomatch patterns or regular expressions that are matched against the path of each file relative to the watched directory, using forward slashes as path separators. If `include` is omitted, all files in the directory are watched. Changes to files that do not match the patterns will not trigger a rebuild.
+
+Creating, modifying or deleting a matching file, moving matching files in or out of the directory, and deleting or recreating the watched directory itself will all invalidate the build. The directory does not need to exist when it is registered; the watcher will wait for it to be created and starts monitoring it once it appears.
+
+The set of watched directories is committed after each successful build. If a build fails, the directories of the last successful build remain watched and any directories discovered during the failed build are added so that fixing the error can be detected; directories that are no longer registered are removed after the next successful build. If several plugins watch the same or overlapping directories, the underlying watchers are shared and a single file change will only trigger one rebuild. All directory watchers are closed when the watcher is closed.
+
+Like [`this.addWatchFile`](#this-addwatchfile), changes to matching files are also reported to the [`watchChange`](#watchchange) hook and via the `change` event of the watcher.
+
 ### this.addWatchFile
 
 |       |                        |

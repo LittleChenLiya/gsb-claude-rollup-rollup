@@ -2107,6 +2107,308 @@ describe('rollup.watch', function () {
 			]);
 		});
 	});
+
+	describe('addWatchDirectory', () => {
+		const DATA_DIR = path.join(INPUT_DIR, 'data');
+
+		function directoryPlugin(watchDirectoryOptions) {
+			return {
+				name: 'directory-plugin',
+				buildStart() {
+					this.addWatchDirectory(DATA_DIR, watchDirectoryOptions);
+				},
+				resolveId(id) {
+					if (id === 'virtual:names') {
+						return id;
+					}
+				},
+				load(id) {
+					if (id === 'virtual:names') {
+						const names = existsSync(DATA_DIR)
+							? readdirSync(DATA_DIR)
+									.filter(name => name.endsWith('.json'))
+									.sort()
+							: [];
+						return `export const names = ${JSON.stringify(names)};`;
+					}
+				}
+			};
+		}
+
+		function watchDirectory(plugins) {
+			return rollup.watch({
+				input: ENTRY_FILE,
+				output: {
+					file: BUNDLE_FILE,
+					format: 'cjs',
+					exports: 'auto'
+				},
+				plugins
+			});
+		}
+
+		it('rebuilds when matching files are added or removed in a watched directory', async () => {
+			let builds = 0;
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await wait(100);
+			watcher = watchDirectory([directoryPlugin({ include: ['**/*.json'] })]);
+			watcher.on('event', event => {
+				if (event.code === 'BUNDLE_END') {
+					builds++;
+				}
+			});
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+					atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json', 'b.json']);
+					// files that do not match the include pattern must not trigger a rebuild
+					atomicWriteFileSync(path.join(DATA_DIR, 'x.txt'), 'ignored');
+					await wait(500);
+					assert.strictEqual(builds, 2);
+					await unlink(path.join(DATA_DIR, 'b.json'));
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+				}
+			]);
+		});
+
+		it('keeps directory watches of a failed build and picks up changes after recovery', async () => {
+			const FAIL_FILE = path.join(INPUT_DIR, 'fail');
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await wait(100);
+			watcher = watchDirectory([
+				directoryPlugin({ include: ['**/*.json'] }),
+				{
+					name: 'fail-plugin',
+					buildStart() {
+						if (existsSync(FAIL_FILE)) {
+							this.error('expected failure');
+						}
+					}
+				}
+			]);
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+					atomicWriteFileSync(FAIL_FILE, '');
+					atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'ERROR:[plugin fail-plugin] expected failure',
+				'END',
+				() => {
+					// matching changes are still detected while the build is broken
+					atomicWriteFileSync(path.join(DATA_DIR, 'c.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'ERROR:[plugin fail-plugin] expected failure',
+				'END',
+				async () => {
+					await unlink(FAIL_FILE);
+					// trigger a rebuild now that the plugin is fixed
+					atomicWriteFileSync(path.join(DATA_DIR, 'c.json'), '{"updated":true}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json', 'b.json', 'c.json']);
+				}
+			]);
+		});
+
+		it('triggers only one rebuild for a change matching overlapping watched directories', async () => {
+			let builds = 0;
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await mkdir(path.join(DATA_DIR, 'sub'), { recursive: true });
+			await wait(100);
+			watcher = watchDirectory([
+				directoryPlugin({ include: ['**/*.json'] }),
+				{
+					name: 'overlapping-directory-plugin',
+					buildStart() {
+						// the same directory with a different filter shares the underlying
+						// watcher, the nested directory overlaps with the parent watcher
+						this.addWatchDirectory(DATA_DIR, { include: ['**/*.txt'] });
+						this.addWatchDirectory(path.join(DATA_DIR, 'sub'));
+					}
+				}
+			]);
+			watcher.on('event', event => {
+				if (event.code === 'BUNDLE_END') {
+					builds++;
+				}
+			});
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.strictEqual(builds, 1);
+					atomicWriteFileSync(path.join(DATA_DIR, 'sub', 'c.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					await wait(500);
+					assert.strictEqual(builds, 2);
+				}
+			]);
+		});
+
+		it('rebuilds when a watched directory is deleted and recreated', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await wait(100);
+			watcher = watchDirectory([directoryPlugin({ include: ['**/*.json'] })]);
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+					await rm(DATA_DIR, { force: true, recursive: true });
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, []);
+					await mkdir(DATA_DIR, { recursive: true });
+					atomicWriteFileSync(path.join(DATA_DIR, 'recreated.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					// recreation may be reported as separate directory and file events
+					await wait(600);
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['recreated.json']);
+				}
+			]);
+		});
+
+		it('waits for watched directories that do not exist yet', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await rm(DATA_DIR, { force: true, recursive: true });
+			await wait(100);
+			watcher = watchDirectory([directoryPlugin({ include: ['**/*.json'] })]);
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, []);
+					await mkdir(DATA_DIR, { recursive: true });
+					atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				async () => {
+					await wait(600);
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+				}
+			]);
+		});
+
+		it('rebuilds at least once more when matching changes arrive during a build', async () => {
+			let builds = 0;
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await wait(100);
+			watcher = watchDirectory([
+				directoryPlugin({ include: ['**/*.json'] }),
+				{
+					name: 'change-during-build-plugin',
+					async buildStart() {
+						builds++;
+						if (builds === 2) {
+							await wait(100);
+							atomicWriteFileSync(path.join(DATA_DIR, 'during-build.json'), '{}');
+							await wait(100);
+						}
+					}
+				}
+			]);
+			return sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+					atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"touched":true}');
+				},
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json', 'during-build.json']);
+				}
+			]);
+		});
+
+		it('stops watching directories when the watcher is closed', async () => {
+			let builds = 0;
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			await wait(100);
+			watcher = watchDirectory([directoryPlugin({ include: ['**/*.json'] })]);
+			watcher.on('event', event => {
+				if (event.code === 'BUNDLE_END') {
+					builds++;
+				}
+			});
+			await sequence(watcher, [
+				'START',
+				'BUNDLE_START',
+				'BUNDLE_END',
+				'END',
+				() => {
+					assert.deepStrictEqual(run(BUNDLE_FILE).names, ['a.json']);
+				}
+			]);
+			// "sequence" closes the watcher once all events are handled
+			watcher = null;
+			atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{}');
+			await wait(500);
+			assert.strictEqual(builds, 1);
+		});
+	});
 });
 
 function run(file) {

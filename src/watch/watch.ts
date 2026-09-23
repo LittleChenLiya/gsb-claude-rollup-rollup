@@ -9,9 +9,10 @@ import type {
 	RollupBuild,
 	RollupCache,
 	RollupWatcher,
+	WatchDirectoryRegistration,
 	WatcherOptions
 } from '../rollup/types';
-import { FileWatcher } from './fileWatcher';
+import { FileWatcher, getWatchDirectoryKey } from './fileWatcher';
 
 const eventsRewrites: Record<ChangeEvent, Record<ChangeEvent, ChangeEvent | 'buggy' | null>> = {
 	create: {
@@ -154,6 +155,7 @@ export class Task {
 	private readonly outputs: OutputOptions[];
 	private skipWrite: boolean;
 	private watched = new Set<string>();
+	private watchedDirectories = new Map<string, WatchDirectoryRegistration>();
 	private readonly watcher: Watcher;
 	private readonly watchOptions: WatcherOptions;
 
@@ -235,6 +237,11 @@ export class Task {
 			});
 		} catch (error: any) {
 			if (!this.closed) {
+				if (Array.isArray(error.watchDirectories)) {
+					for (const registration of error.watchDirectories) {
+						this.watchDirectory(registration);
+					}
+				}
 				if (Array.isArray(error.watchFiles)) {
 					for (const id of error.watchFiles) {
 						this.watchFile(id);
@@ -254,9 +261,14 @@ export class Task {
 
 	private updateWatchedFiles(result: RollupBuild) {
 		const previouslyWatched = this.watched;
+		const previouslyWatchedDirectories = this.watchedDirectories;
 		this.watched = new Set();
+		this.watchedDirectories = new Map();
 		this.watchFiles = result.watchFiles;
 		this.cache = result.cache!;
+		for (const registration of result.watchDirectories) {
+			this.watchDirectory(registration);
+		}
 		for (const id of this.watchFiles) {
 			this.watchFile(id);
 		}
@@ -270,6 +282,18 @@ export class Task {
 				this.fileWatcher.unwatch(id);
 			}
 		}
+		for (const [key, registration] of previouslyWatchedDirectories) {
+			if (!this.watchedDirectories.has(key)) {
+				this.fileWatcher.unwatchDirectory(registration);
+			}
+		}
+	}
+
+	private watchDirectory(registration: WatchDirectoryRegistration) {
+		const key = getWatchDirectoryKey(registration);
+		if (this.watchedDirectories.has(key)) return;
+		this.watchedDirectories.set(key, registration);
+		this.fileWatcher.watchDirectory(registration);
 	}
 
 	private watchFile(id: string, isTransformDependency = false) {
