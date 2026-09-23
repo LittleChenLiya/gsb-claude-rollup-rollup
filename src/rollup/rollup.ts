@@ -77,6 +77,10 @@ export async function rollupInternal(
 			timeEnd('initialize', 2);
 			await graph.build();
 		} catch (error_: any) {
+			const watchDirectories = Object.keys(graph.watchDirectories);
+			if (watchDirectories.length > 0) {
+				error_.watchDirectories = graph.watchDirectories;
+			}
 			const watchFiles = Object.keys(graph.watchFiles);
 			if (watchFiles.length > 0) {
 				error_.watchFiles = watchFiles;
@@ -124,6 +128,9 @@ export async function rollupInternal(
 			if (result.closed) return error(logAlreadyClosed());
 
 			return handleGenerateWrite(false, inputOptions, unsetInputOptions, rawOutputOptions, graph);
+		},
+		get watchDirectories() {
+			return graph.watchDirectories;
 		},
 		get watchFiles() {
 			return Object.keys(graph.watchFiles);

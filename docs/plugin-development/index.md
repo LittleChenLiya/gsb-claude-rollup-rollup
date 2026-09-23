@@ -1373,6 +1373,18 @@ Note that when emitting assets that correspond to an existing file, it is recomm
 
 In general, it is recommended to use `this.addWatchFile` from within the hook that depends on the watched file.
 
+### this.addWatchDirectory
+
+|  |  |
+| --: | :-- |
+| Type: | `(directory: string, options?: { include?: StringFilter, exclude?: StringFilter }) => void` |
+
+Adds an entire directory to be monitored in watch mode so that creating, moving or deleting files in that directory, as well as changing the contents of matching files, will trigger rebuilds. `directory` can be an absolute path or a path relative to the current working directory. The directory is watched recursively and symbolic links are not followed. If the directory or its parents do not exist yet, the watcher will wait for them to be created and start monitoring them then.
+
+The optional `include` and `exclude` filters are glob patterns or regular expressions that are matched against the path of each changed file relative to the watched directory, using forward slashes as path separators. If `include` is omitted, all files in the directory are included. File changes that do not match the filters will not trigger a rebuild, while the creation or deletion of directories themselves always will.
+
+Just like with [`this.addWatchFile`](#thisaddwatchfile), the set of watched directories is updated after each successful build: Directories that are no longer registered by any plugin are unwatched, while a failed build keeps the previously watched directories and adds any directories discovered during the failed run so that fixing the error can immediately trigger another rebuild.
+
 ### this.debug
 
 |  |  |

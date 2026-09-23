@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const { existsSync, readdirSync, readFileSync, rmSync, unlinkSync } = require('node:fs');
+const { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } = require('node:fs');
 const { rm, unlink, writeFile, mkdir } = require('node:fs/promises');
 const path = require('node:path');
 const { hrtime } = require('node:process');
@@ -2105,6 +2105,267 @@ describe('rollup.watch', function () {
 					assert.strictEqual(transformRuns, 1);
 				}
 			]);
+		});
+	});
+
+	describe('addWatchDirectory', function () {
+		const directoryListingPlugin = (DATA_DIR, { failBuild = () => false, onWriteBundle } = {}) => ({
+			name: 'directory-listing',
+			buildStart() {
+				this.addWatchDirectory(DATA_DIR, { include: '**/*.json' });
+			},
+			resolveId(id) {
+				if (id === 'virtual:names') return id;
+				return null;
+			},
+			load(id) {
+				if (id === 'virtual:names') {
+					if (failBuild()) {
+						throw new Error('Expected plugin failure');
+					}
+					const names = existsSync(DATA_DIR)
+						? readdirSync(DATA_DIR)
+								.filter(name => name.endsWith('.json'))
+								.sort()
+						: [];
+					return `export default ${JSON.stringify(names)};`;
+				}
+				return null;
+			},
+			async writeBundle() {
+				if (onWriteBundle) await onWriteBundle();
+			}
+		});
+
+		it('rebuilds on matching directory changes, ignores other files and recovers from failures', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			const DATA_DIR = path.join(INPUT_DIR, 'data');
+			await mkdir(DATA_DIR, { recursive: true });
+			atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":1}');
+			let failBuild = false;
+			let buildCount = 0;
+			watcher = rollup.watch({
+				input: ENTRY_FILE,
+				plugins: directoryListingPlugin(DATA_DIR, { failBuild: () => failBuild }),
+				output: {
+					file: BUNDLE_FILE,
+					format: 'cjs',
+					exports: 'auto'
+				}
+			});
+			watcher.on('event', event => {
+				if (event.code === 'BUNDLE_START') {
+					buildCount++;
+					console.log(`          [addWatchDirectory] build #${buildCount} started`);
+				} else if (event.code === 'BUNDLE_END') {
+					console.log(
+						`          [addWatchDirectory] build #${buildCount} finished in ${event.duration}ms`
+					);
+				} else if (event.code === 'ERROR') {
+					console.log(
+						`          [addWatchDirectory] build #${buildCount} failed: ${event.error.message}`
+					);
+				}
+			});
+			return sequence(
+				watcher,
+				[
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json']);
+						atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{"b":2}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json', 'b.json']);
+						atomicWriteFileSync(path.join(DATA_DIR, 'x.txt'), 'not watched');
+					},
+					() => {
+						assert.strictEqual(buildCount, 2, 'non-matching files must not trigger a rebuild');
+						unlinkSync(path.join(DATA_DIR, 'b.json'));
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json']);
+						failBuild = true;
+						atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":2}');
+					},
+					'START',
+					'BUNDLE_START',
+					'ERROR',
+					'END',
+					() => {
+						failBuild = false;
+						atomicWriteFileSync(path.join(DATA_DIR, 'c.json'), '{"c":3}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json', 'c.json']);
+					}
+				],
+				1000
+			);
+		});
+
+		it('triggers only one rebuild for overlapping watched directories', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			const DATA_DIR = path.join(INPUT_DIR, 'data');
+			await mkdir(DATA_DIR, { recursive: true });
+			atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":1}');
+			let buildCount = 0;
+			watcher = rollup.watch({
+				input: ENTRY_FILE,
+				plugins: [
+					directoryListingPlugin(DATA_DIR),
+					{
+						name: 'parent-directory-watcher',
+						buildStart() {
+							this.addWatchDirectory(INPUT_DIR, { include: '**/*.json' });
+						}
+					}
+				],
+				output: {
+					file: BUNDLE_FILE,
+					format: 'cjs',
+					exports: 'auto'
+				}
+			});
+			watcher.on('event', event => {
+				if (event.code === 'BUNDLE_START') buildCount++;
+			});
+			return sequence(
+				watcher,
+				[
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json']);
+						atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{"b":2}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.strictEqual(buildCount, 2, 'a single file event triggers exactly one rebuild');
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json', 'b.json']);
+					}
+				],
+				1000
+			);
+		});
+
+		it('runs a follow-up build for directory changes arriving during a build', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			const DATA_DIR = path.join(INPUT_DIR, 'data');
+			await mkdir(DATA_DIR, { recursive: true });
+			atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":1}');
+			let writeBundleCount = 0;
+			watcher = rollup.watch({
+				input: ENTRY_FILE,
+				plugins: directoryListingPlugin(DATA_DIR, {
+					async onWriteBundle() {
+						writeBundleCount++;
+						if (writeBundleCount === 2) {
+							await wait(100);
+							atomicWriteFileSync(path.join(DATA_DIR, 'b.json'), '{"b":2}');
+							await wait(100);
+						}
+					}
+				}),
+				output: {
+					file: BUNDLE_FILE,
+					format: 'cjs',
+					exports: 'auto'
+				}
+			});
+			return sequence(
+				watcher,
+				[
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":2}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json', 'b.json']);
+					}
+				],
+				1000
+			);
+		});
+
+		it('waits for missing watched directories and watches them again after deletion', async () => {
+			await copy(path.join(SAMPLES_DIR, 'watch-directory'), INPUT_DIR);
+			const DATA_DIR = path.join(INPUT_DIR, 'data');
+			watcher = rollup.watch({
+				input: ENTRY_FILE,
+				plugins: directoryListingPlugin(DATA_DIR),
+				output: {
+					file: BUNDLE_FILE,
+					format: 'cjs',
+					exports: 'auto'
+				}
+			});
+			return sequence(
+				watcher,
+				[
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), []);
+						mkdirSync(DATA_DIR, { recursive: true });
+						atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":1}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json']);
+						rmSync(DATA_DIR, { force: true, recursive: true });
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), []);
+						mkdirSync(DATA_DIR, { recursive: true });
+						atomicWriteFileSync(path.join(DATA_DIR, 'a.json'), '{"a":1}');
+					},
+					'START',
+					'BUNDLE_START',
+					'BUNDLE_END',
+					'END',
+					() => {
+						assert.deepStrictEqual(run(BUNDLE_FILE), ['a.json']);
+					}
+				],
+				1000
+			);
 		});
 	});
 });

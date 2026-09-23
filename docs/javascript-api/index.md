@@ -307,6 +307,10 @@ watcher.on('close', () => {
 watcher.close();
 ```
 
+### Watching directories
+
+Besides individual files, plugins can also watch entire directories for member changes via [`this.addWatchDirectory`](../plugin-development/index.md#thisaddwatchdirectory). Any file that is created, moved into or out of, or deleted inside a watched directory will trigger a rebuild, as will content changes to files matching the optional `include`/`exclude` filters of the directory watch. Watched directories are monitored recursively without following symbolic links, and directories that do not exist yet are picked up once they are created. When several plugins watch overlapping directories, the underlying watchers are shared so that a single file event only triggers one rebuild. Closing the watcher also closes all directory watchers.
+
 ### watchOptions
 
 The `watchOptions` argument is a config (or an array of configs) that you would export from a config file.

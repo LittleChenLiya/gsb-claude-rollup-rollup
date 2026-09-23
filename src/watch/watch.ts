@@ -9,9 +9,10 @@ import type {
 	RollupBuild,
 	RollupCache,
 	RollupWatcher,
+	WatchDirectoryOptions,
 	WatcherOptions
 } from '../rollup/types';
-import { FileWatcher } from './fileWatcher';
+import { FileWatcher, type WatchDirectoryFilter } from './fileWatcher';
 
 const eventsRewrites: Record<ChangeEvent, Record<ChangeEvent, ChangeEvent | 'buggy' | null>> = {
 	create: {
@@ -154,6 +155,7 @@ export class Task {
 	private readonly outputs: OutputOptions[];
 	private skipWrite: boolean;
 	private watched = new Set<string>();
+	private watchedDirectories = new Map<string, WatchDirectoryFilter>();
 	private readonly watcher: Watcher;
 	private readonly watchOptions: WatcherOptions;
 
@@ -235,6 +237,13 @@ export class Task {
 			});
 		} catch (error: any) {
 			if (!this.closed) {
+				if (error.watchDirectories) {
+					for (const [directory, options] of Object.entries<WatchDirectoryOptions>(
+						error.watchDirectories
+					)) {
+						this.watchDirectory(directory, options);
+					}
+				}
 				if (Array.isArray(error.watchFiles)) {
 					for (const id of error.watchFiles) {
 						this.watchFile(id);
@@ -254,11 +263,16 @@ export class Task {
 
 	private updateWatchedFiles(result: RollupBuild) {
 		const previouslyWatched = this.watched;
+		const previouslyWatchedDirectories = this.watchedDirectories;
 		this.watched = new Set();
+		this.watchedDirectories = new Map();
 		this.watchFiles = result.watchFiles;
 		this.cache = result.cache!;
 		for (const id of this.watchFiles) {
 			this.watchFile(id);
+		}
+		for (const [directory, options] of Object.entries(result.watchDirectories)) {
+			this.watchDirectory(directory, options);
 		}
 		for (const module of this.cache.modules) {
 			for (const dependencyId of module.transformDependencies) {
@@ -270,6 +284,21 @@ export class Task {
 				this.fileWatcher.unwatch(id);
 			}
 		}
+		for (const [directory, filter] of previouslyWatchedDirectories) {
+			if (!this.watchedDirectories.has(directory)) {
+				this.fileWatcher.unwatchDirectory(directory, filter);
+			}
+		}
+	}
+
+	private watchDirectory(directory: string, options: WatchDirectoryOptions) {
+		const filter = createFilter(options.include, options.exclude, { resolve: false });
+		const previousFilter = this.watchedDirectories.get(directory);
+		if (previousFilter) {
+			this.fileWatcher.unwatchDirectory(directory, previousFilter);
+		}
+		this.watchedDirectories.set(directory, filter);
+		this.fileWatcher.watchDirectory(directory, filter);
 	}
 
 	private watchFile(id: string, isTransformDependency = false) {
