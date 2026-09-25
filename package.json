@@ -52,6 +52,7 @@
     "update:js": "npm run build:js && npm run build:copy-native",
     "build:copy-native": "shx mkdir -p dist && shx cp rollup.*.node dist/",
     "dev": "concurrently -kc green,blue 'nodemon --watch rust -e rs --exec \"npm run build:wasm\"' 'vitepress dev docs'",
+    "demo:chunk-budget": "node plugins/chunk-dependency-budget/demo/run-demo.js",
     "build:cjs": "rollup --config rollup.config.ts --configPlugin typescript --configTest --forceExit",
     "build:bootstrap": "shx mv dist dist-build && node dist-build/bin/rollup --config rollup.config.ts --configPlugin typescript --forceExit && shx rm -rf dist-build",
     "build:bootstrap:cjs": "shx mv dist dist-build && node dist-build/bin/rollup --config rollup.config.ts --configPlugin typescript --configTest --forceExit && shx rm -rf dist-build",

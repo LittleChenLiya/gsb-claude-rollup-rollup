@@ -1,4 +1,5 @@
 require('./bundle-information');
+require('./chunk-dependency-budget');
 require('./fs-override');
 require('./get-log-filter');
 require('./parse-ast');
