@@ -22,6 +22,7 @@ Keep instructions concise, only add non-obvious information. Proactively update 
 - Tests run against full artifact only—no unit tests to allow easy refactoring of internal APIs
 - Test cases in `test/*/samples/` are configured via `_config.js` files; focus tests with `solo: true`
 - More specific rules live in nested files: `src/AGENTS.md`, `rust/AGENTS.md`, `test/AGENTS.md`, `docs/AGENTS.md`
+- Optional plugins maintained in this repo live in `plugins/` (currently `plugins/input-lock`, an input-locking plugin with its own README, fixtures and demo; its mocha tests are in `test/misc/input-lock.js`)
 
 ## JS-Rust Interface
 

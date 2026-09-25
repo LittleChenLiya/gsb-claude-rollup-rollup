@@ -2494,3 +2494,17 @@ function dependentPlugin() {
 }
 ```
 <!-- prettier-ignore-end -->
+
+## Input locking
+
+Builds can be locked to their inputs with the `rollup-plugin-input-lock` plugin maintained in this repository under `plugins/input-lock`. During a normal build, the plugin records a content digest of every module and emitted asset that participates in the compilation and writes a stable, sorted manifest (`rollup.input-lock.json`); with `mode: "verify"`, a later build fails without writing any bundle if an input is missing, changed, or unexpected.
+
+The digest is taken in the `transform` hook of the lock plugin, which runs after all `load` hooks and — when the plugin is placed first in the `plugins` array — before any other transform. The lock therefore covers what plugins provide via `load`, such as virtual modules, and not just files on disk.
+
+For the manifest to be stable and portable, input keys follow a protocol:
+
+- Local modules are keyed by their project-relative POSIX path, so the manifest does not depend on the absolute checkout directory.
+- Virtual modules are keyed by the stable logical id the providing plugin returns from `resolveId`, with the conventional `\0` prefix stripped. Plugins providing virtual modules should therefore return stable, content-independent ids.
+- Emitted assets are keyed by `asset:` plus the `name` given to `emitFile`, which stays stable even when the emitted file name contains a content hash.
+
+See `plugins/input-lock/README.md` for the full manifest format and options.

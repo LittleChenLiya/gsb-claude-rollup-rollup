@@ -4,6 +4,7 @@ require('./get-log-filter');
 require('./parse-ast');
 require('./iife');
 require('./in-memory-sourcemaps');
+require('./input-lock');
 require('./misc');
 require('./sanity-checks');
 require('./umd');

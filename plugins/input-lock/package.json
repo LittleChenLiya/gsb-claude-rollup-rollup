@@ -1,0 +1,12 @@
+{
+	"name": "rollup-plugin-input-lock",
+	"version": "0.1.0",
+	"description": "Locks Rollup build inputs into a stable content manifest and verifies later builds against it",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"keywords": [
+		"rollup-plugin"
+	],
+	"license": "MIT",
+	"private": true
+}
