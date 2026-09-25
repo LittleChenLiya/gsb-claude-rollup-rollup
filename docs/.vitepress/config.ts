@@ -145,6 +145,10 @@ export default defineConfig({
 					{
 						link: '/tools/',
 						text: 'Other Tools'
+					},
+					{
+						link: '/input-lock/',
+						text: 'Locking Build Inputs'
 					}
 				],
 				text: 'More info'
