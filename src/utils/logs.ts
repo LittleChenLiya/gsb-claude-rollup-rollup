@@ -172,6 +172,8 @@ const ADDON_ERROR = 'ADDON_ERROR',
 	OPTIMIZE_CHUNK_STATUS = 'OPTIMIZE_CHUNK_STATUS',
 	PARSE_ERROR = 'PARSE_ERROR',
 	PLUGIN_ERROR = 'PLUGIN_ERROR',
+	PORTABLE_FILE_NAME_CONFLICT = 'PORTABLE_FILE_NAME_CONFLICT',
+	PORTABLE_FILE_NAME_VIOLATION = 'PORTABLE_FILE_NAME_VIOLATION',
 	REDECLARATION_ERROR = 'REDECLARATION_ERROR',
 	RESERVED_NAMESPACE = 'RESERVED_NAMESPACE',
 	SHIMMED_EXPORT = 'SHIMMED_EXPORT',
@@ -452,6 +454,29 @@ export function logFileReferenceIdNotFoundForFilename(assetReferenceId: string):
 	return {
 		code: FILE_NOT_FOUND,
 		message: `Plugin error - Unable to get file name for unknown file "${assetReferenceId}".`
+	};
+}
+
+export function logPortableFileNameConflict(
+	fileName: string,
+	conflictingFileName: string,
+	source: string,
+	conflictingSource: string
+): RollupLog {
+	return {
+		code: PORTABLE_FILE_NAME_CONFLICT,
+		message: `The output file names "${fileName}" (from ${source}) and "${conflictingFileName}" (from ${conflictingSource}) are treated as the same file on case-insensitive file systems. Rename one of the files to use a distinct, portable name.`
+	};
+}
+
+export function logPortableFileNameViolation(
+	fileName: string,
+	reason: string,
+	source?: string
+): RollupLog {
+	return {
+		code: PORTABLE_FILE_NAME_VIOLATION,
+		message: `The output file name "${fileName}"${source ? ` (from ${source})` : ''} is not portable: ${reason} Rename the file to use a portable name.`
 	};
 }
 

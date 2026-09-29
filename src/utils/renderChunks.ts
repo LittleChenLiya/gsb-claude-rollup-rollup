@@ -362,6 +362,7 @@ function addChunksToBundle(
 			finalSourcemapFileName,
 			hashesByPlaceholder
 		);
+		pluginDriver.registerFileNameSource(finalFileName, 'the generated chunk');
 	}
 	for (const { chunk, code, fileName, sourcemapFileName, map } of nonHashedChunksWithPlaceholders) {
 		let updatedCode =
@@ -382,6 +383,7 @@ function addChunksToBundle(
 			finalSourcemapFileName,
 			hashesByPlaceholder
 		);
+		pluginDriver.registerFileNameSource(fileName, 'the generated chunk');
 	}
 }
 
@@ -399,12 +401,15 @@ function emitSourceMapAndGetComment(
 		url = sourcemapBaseUrl
 			? new URL(sourcemapFileName, sourcemapBaseUrl).toString()
 			: sourcemapFileName;
-		pluginDriver.emitFile({
-			fileName,
-			originalFileName: null,
-			source: map.toString(),
-			type: 'asset'
-		});
+		pluginDriver.emitFile(
+			{
+				fileName,
+				originalFileName: null,
+				source: map.toString(),
+				type: 'asset'
+			},
+			'the source map of a generated chunk'
+		);
 	}
 	return sourcemap === 'hidden' ? '' : `//# ${SOURCEMAPPING_URL}=${url}\n`;
 }

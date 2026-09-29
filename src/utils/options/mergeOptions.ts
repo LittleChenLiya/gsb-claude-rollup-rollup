@@ -246,6 +246,7 @@ async function mergeOutputOptions(
 		externalImportAttributes: getOption('externalImportAttributes'),
 		externalLiveBindings: getOption('externalLiveBindings'),
 		file: getOption('file'),
+		fileNameStrategy: getOption('fileNameStrategy'),
 		footer: getOption('footer'),
 		format: getOption('format'),
 		freeze: getOption('freeze'),

@@ -59,7 +59,7 @@ export function getPluginContext(
 		},
 		cache: cacheInstance,
 		debug: getLogHandler(LOGLEVEL_DEBUG, 'PLUGIN_LOG', onLog, plugin.name, logLevel),
-		emitFile: fileEmitter.emitFile.bind(fileEmitter),
+		emitFile: emittedFile => fileEmitter.emitFile(emittedFile, `plugin "${plugin.name}"`),
 		error(error_): never {
 			return error(logPluginError(normalizeLog(error_), plugin.name));
 		},

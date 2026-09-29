@@ -16,6 +16,7 @@ import type {
 } from '../rollup/types';
 import { collapseSourcemap } from './collapseSourcemaps';
 import { decodedSourcemap } from './decodedSourcemap';
+import { emittedFileNameSource } from './FileEmitter';
 import { LOGLEVEL_WARN } from './logging';
 import {
 	augmentCodeLocation,
@@ -132,8 +133,12 @@ export default async function transform(
 						: getTrackedPluginCache(pluginContext.cache, useCustomTransformCache),
 					debug: getLogHandler(pluginContext.debug),
 					emitFile(emittedFile: EmittedFile) {
-						emittedFiles.push(emittedFile);
-						return pluginDriver.emitFile(emittedFile);
+						const emittedFileWithSource = emittedFile as EmittedFile & {
+							[emittedFileNameSource]?: string;
+						};
+						emittedFileWithSource[emittedFileNameSource] = `plugin "${pluginName}"`;
+						emittedFiles.push(emittedFileWithSource);
+						return pluginDriver.emitFile(emittedFileWithSource);
 					},
 					error(
 						error_: RollupError | string,

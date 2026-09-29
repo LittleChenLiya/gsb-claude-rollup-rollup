@@ -814,6 +814,8 @@ export type NormalizedAmdOptions = (
 
 type AddonFunction = (chunk: RenderedChunk) => string | Promise<string>;
 
+export type FileNameStrategy = 'strict-portable';
+
 type OutputPluginOption = MaybePromise<OutputPlugin | NullValue | false | OutputPluginOption[]>;
 
 type HashCharacters = 'base64' | 'base36' | 'hex';
@@ -832,6 +834,7 @@ export interface OutputOptions {
 	experimentalMinChunkSize?: number | undefined;
 	exports?: 'default' | 'named' | 'none' | 'auto' | undefined;
 	extend?: boolean | undefined;
+	fileNameStrategy?: FileNameStrategy | undefined;
 	/** @deprecated Use "externalImportAttributes" instead. */
 	externalImportAssertions?: boolean | undefined;
 	externalImportAttributes?: boolean | undefined;
@@ -890,6 +893,7 @@ export interface NormalizedOutputOptions {
 	experimentalMinChunkSize: number;
 	exports: 'default' | 'named' | 'none' | 'auto';
 	extend: boolean;
+	fileNameStrategy: FileNameStrategy | undefined;
 	/** @deprecated Use "externalImportAttributes" instead. */
 	externalImportAssertions: boolean;
 	externalImportAttributes: boolean;

@@ -933,6 +933,25 @@ This pattern will also be used for every file when setting the [`output.preserve
 
 Whether to extend the global variable defined by the `name` option in `umd` or `iife` formats. When `true`, the global variable will be defined as `(global.name = global.name || {})`. When false, the global defined by `name` will be overwritten like `(global.name = {})`.
 
++### output.fileNameStrategy
+
+|          |                                        |
+| -------: | :------------------------------------- |
+|    Type: | `"strict-portable"` \| undefined       |
+|     CLI: | `--fileNameStrategy <strict-portable>` |
+| Default: | `undefined`                            |
+
+Selects a strategy for validating the final file names of all emitted chunks and assets before any file is written. When set to `"strict-portable"`, Rollup rejects the output if two file names would not be safely usable across common file systems:
+
+- file names must be relative and must not resolve outside of the output directory via `..`;
+- no path segment may be a reserved Windows file name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9` or `LPT1`–`LPT9`, optionally followed by an extension);
+- no path segment may end with a `.` or a space;
+- no two file names may be identical after ASCII case folding, e.g. `Readme.txt` and `README.txt` would collide on case-insensitive file systems. The error lists both file names and their sources.
+
+File names containing non-ASCII characters are allowed; only ASCII case differences are compared. Names assigned by plugins in the `generateBundle` hook are included in the check. Each output configuration is validated independently.
+
+File names containing non-ASCII characters are allowed; only ASCII case differences are compared. Names assigned by plugins in the `generateBundle` hook are included in the check. Each output configuration is validated independently. File names provided directly via `emitFile` are checked as given and are not rewritten by [`output.sanitizeFileName`](#output-sanitizefilename).
+
 ### output.externalImportAttributes
 
 |          |                                                              |

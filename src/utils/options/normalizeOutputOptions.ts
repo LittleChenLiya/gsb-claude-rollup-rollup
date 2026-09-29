@@ -15,6 +15,7 @@ import {
 	URL_OUTPUT_AMD_ID,
 	URL_OUTPUT_DIR,
 	URL_OUTPUT_EXTERNALIMPORTATTRIBUTES,
+	URL_OUTPUT_FILENAMESTRATEGY,
 	URL_OUTPUT_FORMAT,
 	URL_OUTPUT_GENERATEDCODE,
 	URL_OUTPUT_INLINEDYNAMICIMPORTS,
@@ -64,6 +65,7 @@ export async function normalizeOutputOptions(
 		externalImportAttributes,
 		externalLiveBindings: config.externalLiveBindings ?? true,
 		file,
+		fileNameStrategy: getFileNameStrategy(config),
 		footer: getAddon(config, 'footer'),
 		format,
 		freeze: config.freeze ?? true,
@@ -178,6 +180,23 @@ const getFormat = (config: OutputOptions): NormalizedOutputOptions['format'] => 
 			);
 		}
 	}
+};
+
+const getFileNameStrategy = (
+	config: OutputOptions
+): NormalizedOutputOptions['fileNameStrategy'] => {
+	const { fileNameStrategy } = config;
+	if (fileNameStrategy !== undefined && fileNameStrategy !== 'strict-portable') {
+		return error(
+			logInvalidOption(
+				'output.fileNameStrategy',
+				URL_OUTPUT_FILENAMESTRATEGY,
+				'Valid values are "strict-portable"',
+				fileNameStrategy
+			)
+		);
+	}
+	return fileNameStrategy;
 };
 
 const getInlineDynamicImports = (

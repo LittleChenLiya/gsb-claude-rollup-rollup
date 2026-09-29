@@ -39,6 +39,7 @@ Options:
 --no-externalImportAttributes Omit import attributes in "es" output
 --no-externalLiveBindings   Do not generate code to support live bindings
 --failAfterWarnings         Exit with an error if the build produced warnings
+--fileNameStrategy <strict-portable> Validate output file name portability
 --filterLogs <filter>       Filter log messages
 --footer <text>             Code to insert at end of bundle (outside wrapper)
 --forceExit                 Force exit the process when done
