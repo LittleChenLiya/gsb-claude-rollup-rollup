@@ -818,6 +818,8 @@ type OutputPluginOption = MaybePromise<OutputPlugin | NullValue | false | Output
 
 type HashCharacters = 'base64' | 'base36' | 'hex';
 
+export type FileNamesOption = 'strict-portable';
+
 export interface OutputOptions {
 	amd?: AmdOptions | undefined;
 	assetFileNames?: string | ((chunkInfo: PreRenderedAsset) => string) | undefined;
@@ -838,6 +840,7 @@ export interface OutputOptions {
 	externalLiveBindings?: boolean | undefined;
 	// only required for bundle.write
 	file?: string | undefined;
+	fileNames?: FileNamesOption | undefined;
 	footer?: string | AddonFunction | undefined;
 	format?: ModuleFormat | undefined;
 	freeze?: boolean | undefined;
@@ -895,6 +898,7 @@ export interface NormalizedOutputOptions {
 	externalImportAttributes: boolean;
 	externalLiveBindings: boolean;
 	file: string | undefined;
+	fileNames: FileNamesOption | undefined;
 	footer: AddonFunction;
 	format: InternalModuleFormat;
 	freeze: boolean;

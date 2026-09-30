@@ -365,6 +365,23 @@ The directory in which all generated chunks are placed. This option is required 
 
 The file to write to. Will also be used to generate sourcemaps, if applicable. Can only be used if not more than one chunk is generated.
 
+### output.fileNames
+
+|       |                     |
+| ----: | :------------------ |
+| Type: | `'strict-portable'` |
+|  CLI: | Not supported       |
+
+By default, Rollup only rejects file names that are absolute or contain `..` segments that escape the output directory. Set this option to `'strict-portable'` to additionally validate all finalized chunk and asset file names before anything is written. Each output is validated independently. The validation rejects file names that can be problematic when the output is extracted or used across different file systems and platforms:
+
+- absolute paths and Windows drive letters,
+- any `..` segments, even if they do not escape the output directory,
+- Windows reserved device names such as `CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9` and `LPT1`-`LPT9`,
+- path segments ending with a dot or a space,
+- two file names that are identical when their ASCII characters are lower-cased, such as `Readme.txt` and `README.txt`, as they cannot coexist on case-insensitive file systems.
+
+Path normalization such as `./` and redundant directory separators as well as non-ASCII (Unicode) file names remain allowed. The validation runs after the `generateBundle` hook, so file names created or changed by plugins are checked as well. If it fails, no output file is written, and the error for a case conflict names both conflicting files.
+
 ### output.format
 
 |          |                                   |

@@ -23,6 +23,7 @@ import {
 	URL_OUTPUT_DIR,
 	URL_OUTPUT_EXPORTS,
 	URL_OUTPUT_EXTEND,
+	URL_OUTPUT_FILENAMES,
 	URL_OUTPUT_GLOBALS,
 	URL_OUTPUT_INTEROP,
 	URL_OUTPUT_NAME,
@@ -133,6 +134,7 @@ const ADDON_ERROR = 'ADDON_ERROR',
 		'EXTERNAL_MODULES_CANNOT_BE_TRANSFORMED_TO_MODULES',
 	EXTERNAL_SYNTHETIC_EXPORTS = 'EXTERNAL_SYNTHETIC_EXPORTS',
 	FAIL_AFTER_WARNINGS = 'FAIL_AFTER_WARNINGS',
+	FILE_NAME_CASE_CONFLICT = 'FILE_NAME_CASE_CONFLICT',
 	FILE_NAME_CONFLICT = 'FILE_NAME_CONFLICT',
 	FILE_NAME_OUTSIDE_OUTPUT_DIRECTORY = 'FILE_NAME_OUTSIDE_OUTPUT_DIRECTORY',
 	FILE_NOT_FOUND = 'FILE_NOT_FOUND',
@@ -148,6 +150,7 @@ const ADDON_ERROR = 'ADDON_ERROR',
 	INVALID_EXTERNAL_ID = 'INVALID_EXTERNAL_ID',
 	INVALID_IMPORT_ATTRIBUTE = 'INVALID_IMPORT_ATTRIBUTE',
 	INVALID_LOG_POSITION = 'INVALID_LOG_POSITION',
+	INVALID_PORTABLE_FILE_NAME = 'INVALID_PORTABLE_FILE_NAME',
 	INVALID_OPTION = 'INVALID_OPTION',
 	INVALID_PLUGIN_HOOK = 'INVALID_PLUGIN_HOOK',
 	INVALID_ROLLUP_PHASE = 'INVALID_ROLLUP_PHASE',
@@ -441,6 +444,14 @@ export function logFileNameConflict(fileName: string): RollupLog {
 	};
 }
 
+export function logFileNameCaseConflict(fileName: string, conflictingFileName: string): RollupLog {
+	return {
+		code: FILE_NAME_CASE_CONFLICT,
+		message: `The output files "${fileName}" and "${conflictingFileName}" differ only in the casing of their file names. File names that are identical when their ASCII characters are lower-cased cannot coexist on case-insensitive file systems.`,
+		url: getRollupUrl(URL_OUTPUT_FILENAMES)
+	};
+}
+
 export function logFileNameOutsideOutputDirectory(fileName: string): RollupLog {
 	return {
 		code: FILE_NAME_OUTSIDE_OUTPUT_DIRECTORY,
@@ -673,6 +684,14 @@ export function logInvalidFunctionPluginHook(hook: string, plugin: string): Roll
 		hook,
 		message: `Error running plugin hook "${hook}" for plugin "${plugin}", expected a function hook or an object with a "handler" function.`,
 		plugin
+	};
+}
+
+export function logInvalidPortableFileName(fileName: string, reason: string): RollupLog {
+	return {
+		code: INVALID_PORTABLE_FILE_NAME,
+		message: `The output file name "${fileName}" is not portable: ${reason}.`,
+		url: getRollupUrl(URL_OUTPUT_FILENAMES)
 	};
 }
 

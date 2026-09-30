@@ -5,5 +5,6 @@ require('./parse-ast');
 require('./iife');
 require('./in-memory-sourcemaps');
 require('./misc');
+require('./file-name-strategy');
 require('./sanity-checks');
 require('./umd');

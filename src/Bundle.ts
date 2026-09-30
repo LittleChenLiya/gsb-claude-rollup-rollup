@@ -13,6 +13,7 @@ import type {
 import { getChunkAssignments } from './utils/chunkAssignment';
 import commondir from './utils/commondir';
 import { sortByExecutionOrder } from './utils/executionOrder';
+import { validateFileNames } from './utils/fileNames';
 import { getGenerateCodeSnippets } from './utils/generateCodeSnippets';
 import type { HashPlaceholderGenerator } from './utils/hashPlaceholders';
 import { getHashPlaceholderGenerator } from './utils/hashPlaceholders';
@@ -100,7 +101,7 @@ export default class Bundle {
 			isWrite
 		]);
 		this.finaliseAssets(outputBundle);
-		validateOutputBundleFileNames(outputBundle);
+		validateOutputBundleFileNames(outputBundle, this.outputOptions);
 
 		timeEnd('generate bundle', 2);
 		timeEnd('GENERATE', 1);
@@ -377,7 +378,11 @@ function isFileNameOutsideOutputDirectory(fileName: string): boolean {
 	);
 }
 
-function validateOutputBundleFileNames(bundle: OutputBundleWithPlaceholders): void {
+function validateOutputBundleFileNames(
+	bundle: OutputBundleWithPlaceholders,
+	outputOptions: NormalizedOutputOptions
+): void {
+	const portableFileNames: string[] = [];
 	for (const [bundleKey, entry] of Object.entries(bundle)) {
 		if (isFileNameOutsideOutputDirectory(bundleKey)) {
 			return error(logFileNameOutsideOutputDirectory(bundleKey));
@@ -387,6 +392,12 @@ function validateOutputBundleFileNames(bundle: OutputBundleWithPlaceholders): vo
 			if (fileName !== bundleKey && isFileNameOutsideOutputDirectory(fileName)) {
 				return error(logFileNameOutsideOutputDirectory(fileName));
 			}
+			if (outputOptions.fileNames === 'strict-portable') {
+				portableFileNames.push(fileName);
+			}
 		}
+	}
+	if (outputOptions.fileNames === 'strict-portable') {
+		validateFileNames(portableFileNames);
 	}
 }
