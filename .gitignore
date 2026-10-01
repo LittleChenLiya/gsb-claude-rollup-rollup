@@ -27,3 +27,4 @@ target
 /wasm-node/
 mise.toml
 .opencode
+scripts/demo-chunk-dependency-budget-output

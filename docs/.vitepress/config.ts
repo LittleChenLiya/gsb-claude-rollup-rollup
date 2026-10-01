@@ -158,6 +158,10 @@ export default defineConfig({
 					{
 						link: '/plugin-development/',
 						text: 'Plugin Development'
+					},
+					{
+						link: '/chunk-dependency-budget/',
+						text: 'Chunk Dependency Budgets'
 					}
 				],
 				text: 'API'

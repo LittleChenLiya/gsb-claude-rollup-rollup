@@ -1025,6 +1025,54 @@ export interface MergedRollupOptions extends InputOptionsWithPlugins {
 
 export function rollup(options: RollupOptions): Promise<RollupBuild>;
 
+export interface ChunkDependencyBudgetComponent {
+	/** The chunk file name, or all chunk file names of a cycle joined by " + ". */
+	id: string;
+	chunks: string[];
+	bytes: number;
+}
+
+export interface ChunkDependencyBudgetDynamicImport {
+	fileName: string;
+	bytes: number;
+}
+
+export interface ChunkDependencyBudgetContribution {
+	/** Component ids forming a path from the entry to the contributing component. */
+	path: string[];
+	bytes: number;
+}
+
+export interface ChunkDependencyBudgetEntryReport {
+	entry: string;
+	fileName: string;
+	/** The configured synchronous byte budget, or null if the entry is unchecked. */
+	budget: number | null;
+	status: 'pass' | 'fail' | 'unchecked';
+	/** Total UTF-8 bytes of all synchronously reachable chunks, each counted once. */
+	totalBytes: number;
+	exceededBy: number;
+	/** Synchronously reachable strongly connected components, sorted by id. */
+	components: ChunkDependencyBudgetComponent[];
+	/** Dynamically imported chunks, listed for information but not budgeted. */
+	dynamicImports: ChunkDependencyBudgetDynamicImport[];
+	/** Statically imported external modules; their cost is unknown, not zero. */
+	externalImports: string[];
+	largestContribution: ChunkDependencyBudgetContribution | null;
+}
+
+export interface ChunkDependencyBudgetReport {
+	entries: ChunkDependencyBudgetEntryReport[];
+}
+
+export interface ChunkDependencyBudgetOptions {
+	/** Maximum synchronously reachable UTF-8 bytes per entry chunk name. */
+	budgets?: Record<string, number>;
+	onReport?: (report: ChunkDependencyBudgetReport, outputOptions: OutputOptions) => void;
+}
+
+export function chunkDependencyBudget(options?: ChunkDependencyBudgetOptions): Plugin;
+
 export interface ChokidarOptions {
 	alwaysStat?: boolean | undefined;
 	atomic?: boolean | number | undefined;
