@@ -1,0 +1,24 @@
+{
+  "entries": {
+    "one.js": {
+      "missing": [],
+      "reachable": [
+        "chunks/one-lazy-BqZBN42n.js",
+        "chunks/shared-BU_oimht.js",
+        "one.js"
+      ]
+    },
+    "two.js": {
+      "missing": [],
+      "reachable": [
+        "chunks/shared-BU_oimht.js",
+        "two.js"
+      ]
+    }
+  },
+  "externals": [],
+  "missing": [],
+  "ok": true,
+  "orphans": [],
+  "outputDir": "<absolute path of the output directory>"
+}

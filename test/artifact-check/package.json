@@ -1,0 +1,13 @@
+{
+	"name": "rollup-artifact-check",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"description": "Read-only pre-deployment artifact check plugin with a small self-contained fixture suite",
+	"scripts": {
+		"test": "node --test"
+	},
+	"devDependencies": {
+		"rollup": "^4.63.4"
+	}
+}
