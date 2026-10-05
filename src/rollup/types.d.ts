@@ -37,6 +37,12 @@ export interface RollupLog {
 	binding?: string | undefined;
 	cause?: unknown | undefined;
 	code?: string | undefined;
+	/**
+	 * How many times this warning was emitted in total. This is only set by
+	 * warning mergers such as `dedupeWarnings`; the first occurrence sets it to
+	 * `1` and every further occurrence increments it.
+	 */
+	count?: number | undefined;
 	exporter?: string | undefined;
 	frame?: string | undefined;
 	hook?: string | undefined;
