@@ -938,6 +938,42 @@ export type WarningHandlerWithDefault = (
 	defaultHandler: LoggingFunction
 ) => void;
 
+export interface MergedRollupLog extends RollupLog {
+	/**
+	 * The number of warnings that have been merged into this log so far,
+	 * including the first occurrence. Starts at `1` and is incremented in
+	 * place each time another warning with the same identity is logged, so
+	 * the final value is available once the build has finished.
+	 */
+	count: number;
+}
+
+export type MergedWarningHandler = (
+	warning: MergedRollupLog,
+	defaultHandler: LoggingFunction
+) => void;
+
+/**
+ * Creates an `onwarn` handler that merges duplicate warnings before
+ * delegating to the provided handler. Two warnings are only merged if they
+ * share the same `code` (for plugin warnings, the effective code is
+ * `pluginCode`, which is part of the identity as well), the same real
+ * module id (`log.id`), the same source position (`loc`, or `pos` if there
+ * is no `loc`) and the same plugin identity (`log.plugin`; anonymous
+ * plugins are identified by the synthetic name Rollup assigns them,
+ * `at position <n>`). The `message` is display text only and not part of
+ * the identity, except for warnings without a source position or without a
+ * plugin identity, which use a more conservative identity that also
+ * includes the `message`.
+ *
+ * The wrapped handler is invoked exactly once per unique warning identity
+ * at its first occurrence, preserving first-occurrence order; later
+ * duplicates only increment `warning.count` in place. Plugins are not
+ * re-run, and the default warning path is unchanged unless this wrapper is
+ * used explicitly.
+ */
+export function mergeWarnings(onwarn: MergedWarningHandler): WarningHandlerWithDefault;
+
 export type SerializedTimings = Record<string, [number, number, number]>;
 
 export interface PreRenderedAsset {

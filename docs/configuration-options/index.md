@@ -742,6 +742,62 @@ A function that will intercept warning messages. It is very similar to [`onLog`]
 
 See [`onLog`](#onlog) for more information.
 
+#### Merging duplicate warnings with `mergeWarnings`
+
+Rollup exports an optional helper `mergeWarnings` that wraps an `onwarn` handler and merges duplicate warnings before delegating. The default warning path is unchanged unless you opt in by using this wrapper:
+
+```js twoslash
+// rollup.config.js
+// ---cut-start---
+/** @type {import('rollup').RollupOptions} */
+// ---cut-end---
+import { mergeWarnings } from 'rollup';
+
+const warnings = [];
+
+export default {
+	// ...
+	onwarn: mergeWarnings((warning, defaultHandler) => {
+		// called exactly once per unique warning; warning.count is
+		// incremented in place for each further duplicate
+		warnings.push(warning);
+		defaultHandler(warning);
+	})
+};
+```
+
+Two warnings are only merged if all of the following are identical:
+
+1. The warning `code`. For plugin warnings, the effective code is `pluginCode` (Rollup replaces `code` with `PLUGIN_WARNING`), so both are part of the identity.
+2. The real module id (`warning.id`) the warning refers to.
+3. The source position — `loc` (file, line and column) if present, otherwise `pos`.
+4. The plugin identity (`warning.plugin`). Named plugins are identified by their name. **Anonymous plugins** are identified by the synthetic name Rollup assigns them (`at position <n>`, based on their position in the plugin array), so each anonymous plugin instance is its own identity: repeated warnings from the same anonymous plugin still merge, while warnings from different anonymous plugins always stay independent.
+
+The `message` is display text only and never part of the identity: warnings with different messages but the same identity still merge (the first message is kept), and warnings with the same message but different positions stay independent.
+
+Warnings without a source position (neither `loc` nor `pos`) or without any plugin identity (e.g. core Rollup warnings) use a more conservative identity that also includes the `message`, so they only merge when their messages match as well.
+
+The wrapped handler is invoked exactly once per unique warning identity — at its first occurrence — preserving first-occurrence order. Each duplicate only increments the `count` property of the warning object that was passed to the handler, so the final counts are available once the build has finished. Merging happens at the `onwarn` level and does not re-run any plugins. For example, if a plugin emits the same warning at the same position three times, the handler receives one warning which ends up with `count: 3`:
+
+```js
+// inside a plugin's transform hook:
+this.warn({ code: 'TEST_WARNING', message: 'same message' }, 5);
+this.warn({ code: 'TEST_WARNING', message: 'same message' }, 5);
+this.warn({ code: 'TEST_WARNING', message: 'same message' }, 5);
+
+// the wrapped onwarn handler is called once with a warning like:
+// {
+//   code: 'PLUGIN_WARNING',
+//   pluginCode: 'TEST_WARNING',
+//   plugin: 'my-plugin',
+//   id: '/project/main.js',
+//   loc: { file: '/project/main.js', line: 1, column: 5 },
+//   pos: 5,
+//   message: '[plugin my-plugin] main.js (1:5): same message',
+//   count: 1 // incremented to 3 by the two duplicates
+// }
+```
+
 ### output.assetFileNames
 
 |          |                                                       |
