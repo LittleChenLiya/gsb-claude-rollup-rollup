@@ -16,6 +16,19 @@ On a `bundle` object, you can call `bundle.generate` multiple times with differe
 
 Once you're finished with the `bundle` object, you should call `bundle.close()`, which will let plugins clean up their external processes or services via the [`closeBundle`](../plugin-development/index.md#closebundle) hook.
 
+To understand why a module ended up in the generated code, you can call `bundle.getInclusionReasons(moduleId)`. It returns a report of the form
+
+```js
+{
+	moduleId: string,
+	status: 'included' | 'external' | 'not-included' | 'unknown',
+	reason: string,
+	paths: Array<Array<{ kind: 'entry' | 'static-import' | 'dynamic-import' | 'reexport', moduleId: string }>>
+}
+```
+
+where `paths` lists all retained paths from an entry point to the module. Each path starts at an entry module, and every further step describes how that module was pulled in by the previous one — via a static import, a dynamic import or a re-export. Only module relationships that survived tree-shaking are considered: modules that were completely removed never appear on a path unless they pass on a live re-export, and removed dynamic import edges are ignored. The paths are sorted, so the report is stable between builds. If the module is not part of the final bundle, `status` explains why: `"external"` for external dependencies, `"not-included"` for modules that were fully removed by tree-shaking and `"unknown"` for modules that were never part of the module graph. In those cases, `reason` contains a human-readable explanation.
+
 If an error occurs at either stage, it will return a Promise rejected with an Error, which you can identify via their `code` property. Besides `code` and `message`, many errors have additional properties you can use for custom reporting, see [`utils/logs.ts`](https://github.com/rollup/rollup/blob/master/src/utils/logs.ts) for a complete list of errors and logs together with their codes and properties.
 
 <!-- prettier-ignore-start -->

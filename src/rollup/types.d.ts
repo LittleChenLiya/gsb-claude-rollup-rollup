@@ -1003,12 +1003,49 @@ export interface RollupOutput {
 	output: [OutputChunk, ...(OutputChunk | OutputAsset)[]];
 }
 
+export type InclusionReasonStepKind = 'dynamic-import' | 'entry' | 'reexport' | 'static-import';
+
+export interface InclusionReasonStep {
+	/**
+	 * How this module was pulled in by the previous module on the path.
+	 * The first step of a path always has the kind "entry".
+	 */
+	kind: InclusionReasonStepKind;
+	moduleId: string;
+}
+
+export type ModuleInclusionStatus = 'external' | 'included' | 'not-included' | 'unknown';
+
+export interface ModuleInclusionReasons {
+	/** The module id this report was generated for. */
+	moduleId: string;
+	/**
+	 * All retained paths from an entry point to the module. Each path is a
+	 * list of steps starting at an entry module; every subsequent step
+	 * describes how that module was pulled in (static import, dynamic import
+	 * or re-export). Only module relationships that survived tree-shaking are
+	 * part of a path. The paths are sorted and stable between builds.
+	 */
+	paths: InclusionReasonStep[][];
+	/** A human-readable explanation, especially for modules not in the bundle. */
+	reason: string;
+	/**
+	 * - "included": the module is part of the final bundle.
+	 * - "external": the module is external and only referenced by the bundle.
+	 * - "not-included": the module was loaded but completely removed by
+	 *   tree-shaking.
+	 * - "unknown": the module was never part of the module graph.
+	 */
+	status: ModuleInclusionStatus;
+}
+
 export interface RollupBuild {
 	cache: RollupCache | undefined;
 	close: () => Promise<void>;
 	closed: boolean;
 	[Symbol.asyncDispose](): Promise<void>;
 	generate: (outputOptions: OutputOptions) => Promise<RollupOutput>;
+	getInclusionReasons: (moduleId: string) => ModuleInclusionReasons;
 	getTimings?: (() => SerializedTimings) | undefined;
 	watchFiles: string[];
 	write: (options: OutputOptions) => Promise<RollupOutput>;

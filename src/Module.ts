@@ -793,6 +793,15 @@ export default class Module {
 		}
 	}
 
+	importsFromModule(module: Module | ExternalModule): boolean {
+		for (const description of this.importDescriptions.values()) {
+			if (description.module === module) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	isIncluded(): boolean | null {
 		// Modules where this.ast is missing have been loaded via this.load and are
 		// not yet fully processed, hence they cannot be included.
@@ -823,6 +832,37 @@ export default class Module {
 	log(level: LogLevel, properties: RollupLog, pos: number): void {
 		this.addLocationToLogProps(properties, pos);
 		this.options.onLog(level, properties);
+	}
+
+	reexportsFromModule(module: Module | ExternalModule): boolean {
+		for (const description of this.reexportDescriptions.values()) {
+			if (description.module === module) {
+				return true;
+			}
+		}
+		return this.exportAllModules.includes(module);
+	}
+
+	reexportsIncludedVariableFromModule(module: Module | ExternalModule): boolean {
+		const exportedVariablesByName = this.getExportedVariablesByName();
+		for (const [name, description] of this.reexportDescriptions) {
+			if (description.module === module && exportedVariablesByName.get(name)?.included) {
+				return true;
+			}
+		}
+		if (this.exportAllModules.includes(module)) {
+			for (const [name, variable] of exportedVariablesByName) {
+				if (!variable.included) continue;
+				if (module instanceof ExternalModule) {
+					if (name === `*${module.id}`) {
+						return true;
+					}
+				} else if (module.getExportedVariablesByName().has(name)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	render(options: RenderOptions): { source: MagicString; usesTopLevelAwait: boolean } {

@@ -2,6 +2,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import Bundle from '../Bundle';
 import Graph from '../Graph';
 import { catchUnfinishedHookActions } from '../utils/hookActions';
+import getInclusionReasons from '../utils/inclusionReasons';
 import initWasm from '../utils/initWasm';
 import { getLogger } from '../utils/logger';
 import { LOGLEVEL_DEBUG, LOGLEVEL_INFO, LOGLEVEL_WARN } from '../utils/logging';
@@ -124,6 +125,9 @@ export async function rollupInternal(
 			if (result.closed) return error(logAlreadyClosed());
 
 			return handleGenerateWrite(false, inputOptions, unsetInputOptions, rawOutputOptions, graph);
+		},
+		getInclusionReasons(moduleId: string) {
+			return getInclusionReasons(graph, moduleId);
 		},
 		get watchFiles() {
 			return Object.keys(graph.watchFiles);
