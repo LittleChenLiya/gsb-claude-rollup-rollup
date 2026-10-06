@@ -75,6 +75,7 @@ export class PluginDriver {
 	public readonly emitFile: EmitFile;
 	public finaliseAssets: () => void;
 	public getFileName: (fileReferenceId: string) => string;
+	public readonly getRenamedAssetFileName: (fileName: string) => string;
 	public readonly setChunkInformation: (facadeChunkByModule: ReadonlyMap<Module, Chunk>) => void;
 	public readonly setOutputBundle: (
 		bundle: OutputBundleWithPlaceholders,
@@ -105,6 +106,7 @@ export class PluginDriver {
 		);
 		this.emitFile = this.fileEmitter.emitFile.bind(this.fileEmitter);
 		this.getFileName = this.fileEmitter.getFileName.bind(this.fileEmitter);
+		this.getRenamedAssetFileName = this.fileEmitter.getRenamedAssetFileName.bind(this.fileEmitter);
 		this.finaliseAssets = this.fileEmitter.finaliseAssets.bind(this.fileEmitter);
 		this.setChunkInformation = this.fileEmitter.setChunkInformation.bind(this.fileEmitter);
 		this.setOutputBundle = this.fileEmitter.setOutputBundle.bind(this.fileEmitter);

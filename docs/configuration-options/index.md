@@ -768,6 +768,45 @@ The pattern to use for naming custom emitted assets to include in the build outp
 
 Forward slashes `/` can be used to place files in sub-directories. When using a function, `PreRenderedAsset` is a reduced version of the `OutputAsset` type in [`generateBundle`](../plugin-development/index.md#generatebundle) without the `fileName`. See also [`output.chunkFileNames`](#output-chunkfilenames), [`output.entryFileNames`](#output-entryfilenames).
 
+### output.assetFileRenames
+
+|          |                                       |
+| -------: | :------------------------------------ |
+|    Type: | `Record<string, string> \| null`      |
+| Default: | `null`                                |
+
+An explicit asset rename plan. Each key must be the _final_ file name of an emitted asset — i.e. the name formed after [`output.assetFileNames`](#output-assetfilenames) patterns and hashes have been resolved, or an explicit `fileName` passed to `this.emitFile` — and each value is the literal new file name to use instead. Renames are applied once the final file name of an emitted file has been formed and before chunks are rendered, so every reference that Rollup tracks explicitly is updated to the new name without rewriting arbitrary code strings.
+
+**What is renamed and kept in sync**
+
+- The emitted asset itself. Its content (`source`) is never changed, only its file name.
+- `import.meta.ROLLUP_FILE_URL_<referenceId>` references in chunk code and the `referencedFiles` lists of chunks, which resolve through the file emitter and therefore automatically use the renamed file.
+- Source map files emitted as assets for chunks (e.g. `main.js.map`). For those, the `sourceMappingURL` comment of the owning chunk and its `OutputChunk.sourcemapFileName` property are updated as well. Because moving a source map to another directory would invalidate the relative `sources` paths inside it, source map files can only be renamed within their own directory.
+
+**What is not supported**
+
+- Rename sources that do not match the final file name of an asset emitted to the current output. Unknown references are rejected with an `ASSET_FILE_RENAME_UNKNOWN_REFERENCE` error. This includes chunks, prebuilt chunks, external modules and files that do not exist — only explicitly identified emitted assets can be renamed.
+- Duplicate rename targets (`ASSET_FILE_RENAME_CONFLICT`), targets that collide with another already emitted or reserved file name (`ASSET_FILE_RENAME_CONFLICT`), chained renames where a rename target is itself renamed (`ASSET_FILE_RENAME_INVALID`), and targets that are absolute paths or path fragments outside the output directory (`ASSET_FILE_RENAME_INVALID`).
+- Moving source map files across directories (`ASSET_FILE_RENAME_UNSUPPORTED`).
+
+Rename targets are reserved as soon as the rename is applied, so chunk file names and asset file names generated afterwards that would collide with a renamed asset are deconflicted as usual, while targets that collide with an already emitted or explicitly reserved file name are rejected. If any step of a rename plan fails, the whole generation fails and no new bundle is produced; a previously generated bundle is left unchanged.
+
+```js twoslash
+// rollup.config.js
+// ---cut-start---
+/** @type {import('rollup').RollupOptions} */
+// ---cut-end---
+export default {
+	// ...
+	output: {
+		// ...
+		assetFileRenames: {
+			'assets/logo-a1b2c3d4.png': 'assets/images/logo.png'
+		}
+	}
+};
+```
+
 ### output.banner/output.footer
 
 |  |  |

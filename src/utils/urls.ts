@@ -12,6 +12,7 @@ export const URL_JSX = 'configuration-options/#jsx';
 export const URL_MAXPARALLELFILEOPS = 'configuration-options/#maxparallelfileops';
 export const URL_OUTPUT_AMD_ID = 'configuration-options/#output-amd-id';
 export const URL_OUTPUT_AMD_BASEPATH = 'configuration-options/#output-amd-basepath';
+export const URL_OUTPUT_ASSETFILERENAMES = 'configuration-options/#output-assetfilerenames';
 export const URL_OUTPUT_DIR = 'configuration-options/#output-dir';
 export const URL_OUTPUT_EXPORTS = 'configuration-options/#output-exports';
 export const URL_OUTPUT_EXTEND = 'configuration-options/#output-extend';

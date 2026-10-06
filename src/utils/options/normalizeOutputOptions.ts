@@ -50,6 +50,7 @@ export async function normalizeOutputOptions(
 	const outputOptions: NormalizedOutputOptions & OutputOptions = {
 		amd: getAmd(config),
 		assetFileNames: config.assetFileNames ?? 'assets/[name]-[hash][extname]',
+		assetFileRenames: config.assetFileRenames ?? null,
 		banner: getAddon(config, 'banner'),
 		chunkFileNames: config.chunkFileNames ?? '[name]-[hash].js',
 		compact,

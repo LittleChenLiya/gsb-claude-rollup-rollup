@@ -821,6 +821,7 @@ type HashCharacters = 'base64' | 'base36' | 'hex';
 export interface OutputOptions {
 	amd?: AmdOptions | undefined;
 	assetFileNames?: string | ((chunkInfo: PreRenderedAsset) => string) | undefined;
+	assetFileRenames?: Record<string, string> | null | undefined;
 	banner?: string | AddonFunction | undefined;
 	chunkFileNames?: string | ((chunkInfo: PreRenderedChunk) => string) | undefined;
 	compact?: boolean | undefined;
@@ -880,6 +881,7 @@ export interface OutputOptions {
 export interface NormalizedOutputOptions {
 	amd: NormalizedAmdOptions;
 	assetFileNames: string | ((chunkInfo: PreRenderedAsset) => string);
+	assetFileRenames: Record<string, string> | null;
 	banner: AddonFunction;
 	chunkFileNames: string | ((chunkInfo: PreRenderedChunk) => string);
 	compact: boolean;

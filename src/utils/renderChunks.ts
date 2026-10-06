@@ -7,6 +7,7 @@ import type {
 	NormalizedOutputOptions,
 	RenderedChunk
 } from '../rollup/types';
+import { applySourcemapFileRename } from './assetFileRenames';
 import { collapseSourcemaps } from './collapseSourcemaps';
 import type { GetHash } from './crypto';
 import { hasherByType } from './crypto';
@@ -353,6 +354,10 @@ function addChunksToBundle(
 			finalSourcemapFileName = sourcemapFileName
 				? replacePlaceholders(sourcemapFileName, hashesByPlaceholder)
 				: `${finalFileName}.map`;
+			finalSourcemapFileName = applySourcemapFileRename(
+				finalSourcemapFileName,
+				pluginDriver.getRenamedAssetFileName(finalSourcemapFileName)
+			);
 			map.file = replacePlaceholders(map.file ?? '', hashesByPlaceholder);
 			updatedCode += emitSourceMapAndGetComment(finalSourcemapFileName, map, pluginDriver, options);
 		}
@@ -374,6 +379,10 @@ function addChunksToBundle(
 			finalSourcemapFileName = sourcemapFileName
 				? replacePlaceholders(sourcemapFileName, hashesByPlaceholder)
 				: `${fileName}.map`;
+			finalSourcemapFileName = applySourcemapFileRename(
+				finalSourcemapFileName,
+				pluginDriver.getRenamedAssetFileName(finalSourcemapFileName)
+			);
 			updatedCode += emitSourceMapAndGetComment(finalSourcemapFileName, map, pluginDriver, options);
 		}
 		bundle[fileName] = chunk.finalizeChunk(

@@ -10,6 +10,7 @@ import type {
 	NormalizedOutputOptions,
 	OutputChunk
 } from '../rollup/types';
+import { applyAssetFileRename, AssetFileRenamePlan } from './assetFileRenames';
 import { BuildPhase } from './buildPhase';
 import type { GetHash } from './crypto';
 import { getHash64, hasherByType } from './crypto';
@@ -18,6 +19,7 @@ import { DEFAULT_HASH_SIZE, MAX_HASH_SIZE } from './hashPlaceholders';
 import { LOGLEVEL_WARN } from './logging';
 import {
 	error,
+	logAssetFileRenameUnknownReference,
 	logAssetNotFinalisedForFileName,
 	logAssetReferenceIdNotFoundForSetSource,
 	logAssetSourceAlreadySet,
@@ -196,6 +198,7 @@ interface FileEmitterOutput {
 export class FileEmitter {
 	private facadeChunkByModule: ReadonlyMap<Module, Chunk> | null = null;
 	private readonly filesByReferenceId: Map<string, ConsumedFile>;
+	private assetFileRenamePlan: AssetFileRenamePlan | null = null;
 	private nextIdBase = 1;
 	private output: FileEmitterOutput | null = null;
 	private outputFileEmitters: FileEmitter[] = [];
@@ -244,6 +247,12 @@ export class FileEmitter {
 			if (emittedFile.type === 'asset' && typeof emittedFile.fileName !== 'string')
 				return error(logNoAssetSourceSet(emittedFile.name || referenceId));
 		}
+		if (this.assetFileRenamePlan) {
+			const unknownFileNames = this.assetFileRenamePlan.getUnconsumedFileNames();
+			if (unknownFileNames.length > 0) {
+				return error(logAssetFileRenameUnknownReference(unknownFileNames));
+			}
+		}
 	};
 
 	public getFileName = (fileReferenceId: string): string => {
@@ -257,6 +266,17 @@ export class FileEmitter {
 		}
 		return getAssetFileName(emittedFile, fileReferenceId);
 	};
+
+	/**
+	 * Applies the explicit asset rename plan ("output.assetFileRenames") to the
+	 * final file name of an emitted file. This is used for files whose
+	 * references are finalized outside the file emitter, like source map files
+	 * emitted for chunks.
+	 */
+	public getRenamedAssetFileName = (fileName: string): string =>
+		this.output
+			? applyAssetFileRename(this.assetFileRenamePlan, fileName, this.output.bundle)
+			: fileName;
 
 	public setAssetSource = (referenceId: string, requestedSource: unknown): void => {
 		const consumedFile = this.filesByReferenceId.get(referenceId);
@@ -290,6 +310,9 @@ export class FileEmitter {
 		bundle: OutputBundleWithPlaceholders,
 		outputOptions: NormalizedOutputOptions
 	): void => {
+		// Validate the explicit asset rename plan before anything is emitted so
+		// that an invalid plan never produces a new bundle
+		this.assetFileRenamePlan = AssetFileRenamePlan.create(outputOptions.assetFileRenames);
 		const getHash = hasherByType[outputOptions.hashCharacters];
 		const output = (this.output = {
 			bundle,
@@ -502,8 +525,13 @@ export class FileEmitter {
 					bundle,
 					this.options
 				);
+				// Apply the explicit rename plan once the final file name is formed
+				fileName = applyAssetFileRename(this.assetFileRenamePlan, fileName, bundle);
 				fileNamesBySourceHash.set(sourceHash, fileName);
 			}
+		} else {
+			// Apply the explicit rename plan once the final file name is formed
+			fileName = applyAssetFileRename(this.assetFileRenamePlan, fileName, bundle);
 		}
 
 		// We must not modify the original assets to avoid interaction between outputs
@@ -583,6 +611,8 @@ export class FileEmitter {
 				usedConsumedFile = consumedFile;
 			}
 		}
+		// Apply the explicit rename plan once the final file name is formed
+		fileName = applyAssetFileRename(this.assetFileRenamePlan, fileName, bundle);
 		fileNamesBySourceHash.set(sourceHash, fileName);
 
 		for (const consumedFile of consumedFiles) {

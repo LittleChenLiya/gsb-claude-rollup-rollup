@@ -232,6 +232,7 @@ async function mergeOutputOptions(
 	const outputOptions: CompleteOutputOptions<keyof OutputOptions> = {
 		amd: getObjectOption(config, overrides, 'amd'),
 		assetFileNames: getOption('assetFileNames'),
+		assetFileRenames: getOption('assetFileRenames'),
 		banner: getOption('banner'),
 		chunkFileNames: getOption('chunkFileNames'),
 		compact: getOption('compact'),

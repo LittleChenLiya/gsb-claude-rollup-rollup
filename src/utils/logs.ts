@@ -20,6 +20,7 @@ import {
 	URL_CONFIGURATION_FILES,
 	URL_JSX,
 	URL_NAME_IS_NOT_EXPORTED,
+	URL_OUTPUT_ASSETFILERENAMES,
 	URL_OUTPUT_DIR,
 	URL_OUTPUT_EXPORTS,
 	URL_OUTPUT_EXTEND,
@@ -106,6 +107,10 @@ const ADDON_ERROR = 'ADDON_ERROR',
 	ALREADY_CLOSED = 'ALREADY_CLOSED',
 	AMBIGUOUS_EXTERNAL_NAMESPACES = 'AMBIGUOUS_EXTERNAL_NAMESPACES',
 	ANONYMOUS_PLUGIN_CACHE = 'ANONYMOUS_PLUGIN_CACHE',
+	ASSET_FILE_RENAME_CONFLICT = 'ASSET_FILE_RENAME_CONFLICT',
+	ASSET_FILE_RENAME_INVALID = 'ASSET_FILE_RENAME_INVALID',
+	ASSET_FILE_RENAME_UNKNOWN_REFERENCE = 'ASSET_FILE_RENAME_UNKNOWN_REFERENCE',
+	ASSET_FILE_RENAME_UNSUPPORTED = 'ASSET_FILE_RENAME_UNSUPPORTED',
 	ASSET_NOT_FINALISED = 'ASSET_NOT_FINALISED',
 	ASSET_NOT_FOUND = 'ASSET_NOT_FOUND',
 	ASSET_SOURCE_ALREADY_SET = 'ASSET_SOURCE_ALREADY_SET',
@@ -226,6 +231,51 @@ export function logAnonymousPluginCache(): RollupLog {
 		code: ANONYMOUS_PLUGIN_CACHE,
 		message:
 			'A plugin is trying to use the Rollup cache but is not declaring a plugin name or cacheKey.'
+	};
+}
+
+export function logAssetFileRenameConflict(fileName: string, renamedFileName: string): RollupLog {
+	return {
+		code: ASSET_FILE_RENAME_CONFLICT,
+		message: `Cannot rename asset "${fileName}" to "${renamedFileName}" because another emitted file already uses that file name. Rename targets of "output.assetFileRenames" must not collide with other emitted files.`,
+		url: getRollupUrl(URL_OUTPUT_ASSETFILERENAMES)
+	};
+}
+
+export function logAssetFileRenameDuplicateTarget(renamedFileName: string): RollupLog {
+	return {
+		code: ASSET_FILE_RENAME_CONFLICT,
+		message: `Invalid "output.assetFileRenames" option - multiple assets are renamed to "${renamedFileName}". Each rename target must be unique.`,
+		url: getRollupUrl(URL_OUTPUT_ASSETFILERENAMES)
+	};
+}
+
+export function logAssetFileRenameInvalid(reason: string): RollupLog {
+	return {
+		code: ASSET_FILE_RENAME_INVALID,
+		message: `Invalid "output.assetFileRenames" option - ${reason}.`,
+		url: getRollupUrl(URL_OUTPUT_ASSETFILERENAMES)
+	};
+}
+
+export function logAssetFileRenameUnknownReference(fileNames: string[]): RollupLog {
+	return {
+		code: ASSET_FILE_RENAME_UNKNOWN_REFERENCE,
+		message: `Invalid "output.assetFileRenames" option - the following rename sources did not match the final file name of an emitted asset: ${printQuotedStringList(
+			fileNames
+		)}. Only assets explicitly emitted to the current output, including source map files emitted as assets, can be renamed. Renaming chunks, prebuilt chunks, external modules or files that do not exist is not supported.`,
+		url: getRollupUrl(URL_OUTPUT_ASSETFILERENAMES)
+	};
+}
+
+export function logAssetFileRenameUnsupportedSourcemapMove(
+	fileName: string,
+	renamedFileName: string
+): RollupLog {
+	return {
+		code: ASSET_FILE_RENAME_UNSUPPORTED,
+		message: `Cannot rename source map file "${fileName}" to "${renamedFileName}" - renaming source map files across directories is not supported because it would invalidate the relative paths inside the source map.`,
+		url: getRollupUrl(URL_OUTPUT_ASSETFILERENAMES)
 	};
 }
 
