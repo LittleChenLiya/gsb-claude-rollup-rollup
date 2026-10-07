@@ -313,7 +313,9 @@ function validateOptionsForMultiChunkOutput(
 		);
 }
 
-function getIncludedModules(modulesById: ReadonlyMap<string, Module | ExternalModule>): Module[] {
+export function getIncludedModules(
+	modulesById: ReadonlyMap<string, Module | ExternalModule>
+): Module[] {
 	const includedModules: Module[] = [];
 	for (const module of modulesById.values()) {
 		if (

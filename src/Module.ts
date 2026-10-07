@@ -38,6 +38,7 @@ import type {
 	DecodedSourceMapOrMissing,
 	EmittedFile,
 	ExistingDecodedSourceMap,
+	InclusionReasonStepKind,
 	LogLevel,
 	ModuleInfo,
 	ModuleJSON,
@@ -151,6 +152,11 @@ export interface DynamicImport {
 	argument: string | AstNode;
 	id: string | null;
 	node: ImportExpression;
+}
+
+export interface IncludedDependencyEdge {
+	dependency: Module | ExternalModule;
+	kind: Exclude<InclusionReasonStepKind, 'entry'>;
 }
 
 const MISSING_EXPORT_SHIM_DESCRIPTION: ExportDescription = {
@@ -492,6 +498,39 @@ export default class Module {
 			this.relevantDependencies.add(dependency);
 		}
 		return this.relevantDependencies;
+	}
+
+	getIncludedDependencyEdges(): IncludedDependencyEdge[] {
+		const edges: IncludedDependencyEdge[] = [];
+		const staticallyImportedModules = new Set<Module | ExternalModule>();
+		for (const { module } of this.importDescriptions.values()) {
+			staticallyImportedModules.add(module);
+		}
+		const reexportedModules = new Set<Module | ExternalModule>(this.exportAllModules);
+		for (const { module } of this.reexportDescriptions.values()) {
+			reexportedModules.add(module);
+		}
+		for (const dependency of this.getDependenciesToBeIncluded()) {
+			edges.push({
+				dependency,
+				kind:
+					reexportedModules.has(dependency) && !staticallyImportedModules.has(dependency)
+						? 're-export'
+						: 'static-import'
+			});
+		}
+		for (const { node } of this.dynamicImports) {
+			const { resolution } = node;
+			if (
+				node.included &&
+				resolution !== null &&
+				typeof resolution !== 'string' &&
+				(resolution instanceof ExternalModule || resolution.includedDynamicImporters.includes(this))
+			) {
+				edges.push({ dependency: resolution, kind: 'dynamic-import' });
+			}
+		}
+		return edges;
 	}
 
 	getExportedVariablesByName(): Map<string, Variable> {

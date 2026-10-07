@@ -1,6 +1,7 @@
 require('./bundle-information');
 require('./fs-override');
 require('./get-log-filter');
+require('./inclusion-reasons');
 require('./parse-ast');
 require('./iife');
 require('./in-memory-sourcemaps');

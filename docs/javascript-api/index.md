@@ -133,6 +133,37 @@ async function generateOutputs(bundle) {
 ```
 <!-- prettier-ignore-end -->
 
+### Understanding why a module is included
+
+If you wonder why a particular module ended up in your bundle, you can call `bundle.getInclusionReasons(moduleId)` with the resolved id of the module. It returns a report that traces the module back to an entry point, following only module relationships that are still present in the final bundle. Modules that were completely removed by tree-shaking are never part of a reported path.
+
+```js twoslash
+import { rollup } from 'rollup';
+
+const bundle = await rollup({
+	input: 'src/main.js',
+	plugins: [/* ... */]
+});
+
+const report = bundle.getInclusionReasons('src/surprising-module.js');
+// {
+//   target: 'src/surprising-module.js',  // the id you passed in
+//   included: true,                      // is the module part of the final bundle
+//   paths: [                             // shortest retained chains from an entry
+//     [
+//       { imported: 'src/main.js', importer: null, kind: 'entry' },
+//       { imported: 'src/shared.js', importer: 'src/main.js', kind: 'static-import' },
+//       { imported: 'src/surprising-module.js', importer: 'src/shared.js', kind: 'dynamic-import' }
+//     ]
+//   ],
+//   reason: null,                        // explanation, mainly when not included
+//   truncated: false                     // true if not all shortest paths are listed
+// }
+console.log(report);
+```
+
+Each step in a path describes how one module pulls in the next via a `static-import`, a `dynamic-import` or a `re-export`; the first step is always the `entry` the chain starts from. If the target is not part of the final bundle, `included` is `false`, `paths` is empty and `reason` explains why, e.g. because the module was removed by tree-shaking, is an unreferenced external, or was never loaded at all.
+
 ### inputOptions object
 
 The `inputOptions` object can contain the following properties (see the [big list of options](../configuration-options/index.md) for full details on these):

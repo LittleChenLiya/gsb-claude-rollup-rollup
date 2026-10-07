@@ -59,6 +59,7 @@ export default class Graph {
 	readonly deoptimizationTracker = new EntityPathTracker();
 	entryModules: Module[] = [];
 	readonly fileOperationQueue: Queue;
+	implicitEntryModules: Module[] = [];
 	readonly moduleLoader: ModuleLoader;
 	readonly modulesById = new Map<string, Module | ExternalModule>();
 	needsTreeshakingPass = false;
@@ -71,7 +72,6 @@ export default class Graph {
 	watchMode = false;
 
 	private readonly externalModules: ExternalModule[] = [];
-	private implicitEntryModules: Module[] = [];
 	private modules: Module[] = [];
 	declare private pluginCache?: Record<string, SerializablePluginCache>;
 

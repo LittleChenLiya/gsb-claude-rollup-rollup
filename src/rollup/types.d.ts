@@ -1003,12 +1003,40 @@ export interface RollupOutput {
 	output: [OutputChunk, ...(OutputChunk | OutputAsset)[]];
 }
 
+export type InclusionReasonStepKind = 'dynamic-import' | 'entry' | 're-export' | 'static-import';
+
+export interface InclusionReasonStep {
+	/** The module that is pulled in by this step. */
+	imported: string;
+	/** The module containing the import or re-export, or `null` for the entry step. */
+	importer: string | null;
+	/** How the importer references the imported module. */
+	kind: InclusionReasonStepKind;
+}
+
+export interface InclusionReasonReport {
+	/** `true` if the target module is part of the final bundle. */
+	included: boolean;
+	/**
+	 * The shortest retained module chains from an entry module to the target.
+	 * Empty if the target is not included or cannot be traced back to an entry.
+	 */
+	paths: InclusionReasonStep[][];
+	/** A human-readable explanation, especially when the target is not included. */
+	reason: string | null;
+	/** The module id this report was generated for. */
+	target: string;
+	/** `true` if there are more shortest paths than are listed in `paths`. */
+	truncated: boolean;
+}
+
 export interface RollupBuild {
 	cache: RollupCache | undefined;
 	close: () => Promise<void>;
 	closed: boolean;
 	[Symbol.asyncDispose](): Promise<void>;
 	generate: (outputOptions: OutputOptions) => Promise<RollupOutput>;
+	getInclusionReasons: (moduleId: string) => InclusionReasonReport;
 	getTimings?: (() => SerializedTimings) | undefined;
 	watchFiles: string[];
 	write: (options: OutputOptions) => Promise<RollupOutput>;
